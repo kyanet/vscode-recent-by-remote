@@ -1,0 +1,40 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "npm: watch",
+      "type": "npm",
+      "script": "watch",
+      "isBackground": true,
+      "presentation": {
+        "reveal": "silent"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": [
+        "$tsc-watch",
+        {
+          "pattern": [
+            {
+              "regexp": "^✘ \\[ERROR\\] (.+)$",
+              "message": 1
+            },
+            {
+              "regexp": "^\\s+(.+):(\\d+):(\\d+):$",
+              "file": 1,
+              "line": 2,
+              "column": 3
+            }
+          ],
+          "background": {
+            "activeOnStart": true,
+            "beginsPattern": "^\\[watch\\] build started$",
+            "endsPattern": "^\\[watch\\] build finished$"
+          }
+        }
+      ]
+    }
+  ]
+}

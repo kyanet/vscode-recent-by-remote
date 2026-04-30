@@ -1,0 +1,193 @@
+{
+  "name": "recent-by-remote",
+  "displayName": "Recent by Remote",
+  "description": "Group VS Code's Open Recent entries by remote route — Tunnel, WSL, SSH, Dev Container — in a Tree View for triage and cleanup.",
+  "version": "0.0.5",
+  "publisher": "kyanet",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "recent",
+    "open recent",
+    "remote",
+    "wsl",
+    "ssh",
+    "devcontainer",
+    "tunnel",
+    "tree view",
+    "history",
+    "workspace"
+  ],
+  "license": "MIT",
+  "icon": "resources/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kyanet/vscode-recent-by-remote.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kyanet/vscode-recent-by-remote/issues"
+  },
+  "homepage": "https://github.com/kyanet/vscode-recent-by-remote#readme",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "extensionKind": [
+    "ui",
+    "workspace"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "recentByRemote",
+          "title": "Recent by Remote",
+          "icon": "$(history)"
+        }
+      ]
+    },
+    "views": {
+      "recentByRemote": [
+        {
+          "id": "recentByRemote.tree",
+          "name": "Recently Opened"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "recentByRemote.refresh",
+        "title": "Recent by Remote: Refresh",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "recentByRemote.open",
+        "title": "Recent by Remote: Open..."
+      },
+      {
+        "command": "recentByRemote.openEntry",
+        "title": "Open",
+        "icon": "$(folder-opened)"
+      },
+      {
+        "command": "recentByRemote.openEntryInNewWindow",
+        "title": "Open in New Window",
+        "icon": "$(empty-window)"
+      },
+      {
+        "command": "recentByRemote.removeEntry",
+        "title": "Remove from Recent",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "recentByRemote.groupByType",
+        "title": "Recent by Remote: Group by Type (Workspaces / Files)",
+        "icon": "$(list-tree)"
+      },
+      {
+        "command": "recentByRemote.groupByRemote",
+        "title": "Recent by Remote: Group by Remote Only",
+        "icon": "$(list-flat)"
+      },
+      {
+        "command": "recentByRemote.toggleGroupMode",
+        "title": "Recent by Remote: Toggle Group Mode"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "recentByRemote.groupByType",
+          "when": "view == recentByRemote.tree && recentByRemote.groupMode == remote",
+          "group": "navigation@1"
+        },
+        {
+          "command": "recentByRemote.groupByRemote",
+          "when": "view == recentByRemote.tree && recentByRemote.groupMode == type",
+          "group": "navigation@1"
+        },
+        {
+          "command": "recentByRemote.refresh",
+          "when": "view == recentByRemote.tree",
+          "group": "navigation@2"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "recentByRemote.openEntryInNewWindow",
+          "when": "view == recentByRemote.tree && viewItem == entry",
+          "group": "inline@1"
+        },
+        {
+          "command": "recentByRemote.removeEntry",
+          "when": "view == recentByRemote.tree && viewItem == entry",
+          "group": "inline@2"
+        },
+        {
+          "command": "recentByRemote.openEntry",
+          "when": "view == recentByRemote.tree && viewItem == entry",
+          "group": "navigation@1"
+        },
+        {
+          "command": "recentByRemote.openEntryInNewWindow",
+          "when": "view == recentByRemote.tree && viewItem == entry",
+          "group": "navigation@2"
+        },
+        {
+          "command": "recentByRemote.removeEntry",
+          "when": "view == recentByRemote.tree && viewItem == entry",
+          "group": "navigation@3"
+        },
+        {
+          "command": "recentByRemote.openEntryInNewWindow",
+          "when": "view == recentByRemote.tree && viewItem == connectionEntry",
+          "group": "inline@1"
+        },
+        {
+          "command": "recentByRemote.openEntry",
+          "when": "view == recentByRemote.tree && viewItem == connectionEntry",
+          "group": "navigation@1"
+        },
+        {
+          "command": "recentByRemote.openEntryInNewWindow",
+          "when": "view == recentByRemote.tree && viewItem == connectionEntry",
+          "group": "navigation@2"
+        }
+      ]
+    }
+  },
+  "packageManager": "pnpm@10.33.2",
+  "scripts": {
+    "vscode:prepublish": "pnpm run package",
+    "compile": "pnpm run check-types && pnpm run lint && node esbuild.js",
+    "watch": "npm-run-all -p watch:*",
+    "watch:esbuild": "node esbuild.js --watch",
+    "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
+    "package": "pnpm run check-types && pnpm run lint && node esbuild.js --production",
+    "vsix": "vsce package --no-dependencies",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "pnpm run compile-tests && pnpm run compile && pnpm run lint",
+    "check-types": "tsc --noEmit",
+    "lint": "eslint src --ext ts",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/mocha": "^10.0.6",
+    "@types/node": "18.x",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.56.0",
+    "esbuild": "^0.20.0",
+    "npm-run-all": "^4.1.5",
+    "typescript": "^5.3.3",
+    "@vscode/test-cli": "^0.0.6",
+    "@vscode/test-electron": "^2.3.8",
+    "@vscode/vsce": "^3.9.1"
+  }
+}

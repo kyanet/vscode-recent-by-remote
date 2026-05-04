@@ -237,30 +237,30 @@ Windows / macOS / Linux すべてで動作します。経路分類のうち **WS
 
 ![Standard VS Code Open Recent menu, where multiple entries labeled "[Dev Container]" provide no clue as to which underlying route they were reached via](https://raw.githubusercontent.com/kyanet/vscode-recent-by-remote/main/resources/screenshots/before-open-recent.png)
 
-複数の `[Dev Container]` エントリが並んでも、それぞれが **WSL 経由 / Tunnel 経由 / SSH 経由** のどれなのか判別できない。経路情報が抜け落ちているため、同じ devcontainer 名のエントリが何個も並ぶと取り違えやすい。`[WSL: distro]` `[SSH: ip]` のような直エントリは経路は分かるが、フォルダ名と経路が同じ行に詰め込まれて視線が忙しい。
+複数の `[Dev Container]` エントリが並んでも、それぞれが **WSL 経由 / Tunnel 経由 / SSH 経由** のどれなのか判別できない。経路情報が抜け落ちているため、同じ devcontainer 名のエントリが何個も並ぶと取り違えやすい。`[WSL: distro]` `[SSH: ip]` のような直エントリは経路こそ分かるものの、フォルダ名と経路情報が同じ行に詰め込まれていて視線の移動が煩雑になる。
 
 ### After — Recent by Remote
 
 ![Tree view organized by remote type. Each top-level node is a route (Tunnel/WSL/SSH), with direct entries first and a Dev Container sub-group at the bottom showing the count of containers reached via that route.](https://raw.githubusercontent.com/kyanet/vscode-recent-by-remote/main/resources/screenshots/after-tree-view.png)
 
-経路ごとにツリーが分割され、`Dev Container` サブグループが**親経路の末尾に配置**されるので「Tunnel 経由の dev container」「WSL 経由の dev container」「SSH 経由の dev container」が一目で区別できる。同じファイルパス `/workspaces/myProject1` でも、どの経路の上で動いている container 内のものかが構造で判る。`(connect, no folder)` も各経路に自動付与されるので、フォルダなしで素のセッションに戻る導線も常に確保されている。
+経路ごとにツリーが分割され、`Dev Container` サブグループが**親経路の末尾に配置**されるので「Tunnel 経由の dev container」「WSL 経由の dev container」「SSH 経由の dev container」が一目で区別できる。コンテナ内パスが同じ `/workspaces/myProject1` であっても、どの経路上の container かをツリー構造から判別できる。`(connect, no folder)` も各経路に自動付与されるので、フォルダを開かずにそのリモートへ接続し直す導線も常に確保されている。
 
 ## 主な機能
 
 - **経路別グループ化**: Tunnel / WSL / SSH / Local / Other に自動分類。各見出しに経路を表すアイコン（`radio-tower` / `terminal-linux` / `key` / `device-desktop` / `question`）が付く
 - **ホスト名併記**: `Tunnel (myhost)`、`WSL (Ubuntu)`、`SSH (myserver)` のようにホスト単位でさらに分割
-- **Dev Container は親経路の配下にネスト**: Dev Container は単独の経路グループにせず、ファイルが置かれているホスト経路（例: `Tunnel (myhost)`、`WSL (Ubuntu)`、`Local`）の配下に **`Dev Container`** サブグループ（`package` アイコン、件数 description 付き＝例 `3 items`）として収まる。dev container がどの経路上で動作しているかが視覚的に明確になる
-- **直エントリ → Dev Container サブグループの並び順**: 各経路グループの中身は「経路に直接置かれたフォルダ／ワークスペース／(connect, no folder)」が先頭にまとまり、`Dev Container` サブグループは末尾に配置される。直開きとコンテナ内開きが視覚的に分離され、同名フォルダ（例: WSL 直下の `myProject1 /home/user/myProject1` と Dev Container 内の `myProject1 \\wsl.localhost\<distro>\home\user\myProject1`）の見分けがつきやすい
-- **Dev Container のホストパス単位サブグループ**: 同じ devcontainer 定義を複数の異なるサブフォルダで開いていても、authority に埋め込まれたホスト側プロジェクトフォルダ (`hostPath`) でまとめて 1 ノード化（`package` アイコン、Dev Container サブグループと同系統で視覚チェーンが繋がる）。コンテナ内パスが `/workspace` で衝突するケースもホスト側プロジェクト名で区別できる
-- **テーマ追従カラーバッジのツールチップ**: ホバー時、エントリ種別 / kind / 親経路（Dev Container の場合）を VS Code のテーマカラー (`--vscode-charts-*` / `--vscode-badge-*`) に追従するバッジで表示。Dark / Light どちらでも視認可能。`uri` / `host` / `path` のフル情報も併記
-- **接続のみエントリ**: Tunnel / WSL / SSH の各経路に `(connect, no folder)` という疑似エントリを自動追加。フォルダを開かずにそのリモートに繋ぐだけのアクションをワンクリックで起動できる。dev container 経由のエントリしかない経路（例: `WSL (distro-X)` 上に dev container 履歴だけ残っているケース）でも、authority から親経路を逆算して `(connect, no folder)` が出るので、その distro へ素のセッションで繋ぎ直す導線が常に確保される
+- **Dev Container は親経路の配下にネスト**: Dev Container を単独の経路グループとして並べず、ファイルが置かれているホスト経路（例: `Tunnel (myhost)`、`WSL (Ubuntu)`、`Local`）の配下に **`Dev Container`** サブグループ（`package` アイコン、件数 description 付き＝例 `3 items`）としてぶら下げる。dev container がどの経路上で動作しているかが視覚的に明確になる
+- **直エントリ → Dev Container サブグループの並び順**: 各経路グループの中身は「経路に直接置かれたフォルダ／ワークスペース／(connect, no folder)」が先頭に並び、`Dev Container` サブグループは末尾に配置される。直開きとコンテナ内開きが視覚的に分離されるため、同名フォルダ（例: WSL 直下の `myProject1 /home/user/myProject1` と Dev Container 内の `myProject1 \\wsl.localhost\<distro>\home\user\myProject1`）も見分けがつきやすい
+- **Dev Container のホストパス単位サブグループ**: 同じ devcontainer 定義を複数の異なるサブフォルダで開いている場合でも、authority に埋め込まれたホスト側プロジェクトフォルダ (`hostPath`) ごとに 1 ノードへまとめる（`package` アイコンで Dev Container サブグループと視覚的に揃える）。コンテナ内パスが `/workspace` で衝突するケースもホスト側プロジェクト名で区別できる
+- **テーマ追従カラーバッジのツールチップ**: ホバー時、エントリ種別 / kind / 親経路（Dev Container の場合）を VS Code のテーマカラー (`--vscode-charts-*` / `--vscode-badge-*`) に追従するバッジとして表示。Dark / Light どちらでも視認可能で、`uri` / `host` / `path` のフル情報も併記する
+- **接続のみエントリ**: Tunnel / WSL / SSH の各経路に `(connect, no folder)` という疑似エントリを自動追加。フォルダを開かずにそのリモートへ接続するだけのアクションをワンクリックで実行できる。dev container 経由のエントリしか残っていない経路（例: `WSL (distro-X)` 上に dev container 履歴だけ残っているケース）でも、authority から親経路を逆算して `(connect, no folder)` を表示するため、その distro へプレーンな状態で接続し直す導線が常に確保される
 - **フォルダ・ワークスペース・ファイルを横断表示**: 「最近開いたフォルダ／ワークスペース」だけでなく「最近開いたファイル」も同じビューに並ぶ（アイコンで識別）
 - **プロジェクトルート相対のファイル表示**: コンテナ内 `fullPath` が `hostPath` 配下にあるファイルは description を相対パスに短縮表示（マウントパスがホストとずれている一般構成では in-container の絶対パスを表示）
 - **グループモード切り替え**: タイトルバーのアイコンで「経路だけでグループ化（混在表示）」と「タイプ→経路の二段グループ化（Workspaces & Folders / Files で分離）」を切り替えられる。選択状態はグローバルに保存される
 - **個別削除**: 各エントリ横のゴミ箱アイコンから公式 Recently Opened から削除
-- **ワンクリックで開く（VS Code 標準 Open Recent と同等のウィンドウルーティング）**: エントリをクリックすると、該当 authority のウィンドウが既に開いていればそれにフォーカス + ファイル/フォルダ open、無ければ新規ウィンドウで authority を解決して open
-- **別ウィンドウで開く**: 行ホバー時の `$(empty-window)` ボタン、右クリック「Open in New Window」、または Quick Pick のアイテムボタンから別ウィンドウで開ける
-- **Quick Pick 版コマンド**: コマンドパレットから `Recent by Remote: Open...` で全エントリを経路プレフィックス付きで検索・選択
+- **ワンクリックで開く（VS Code 標準 Open Recent と同等のウィンドウルーティング）**: エントリをクリックすると、該当 authority のウィンドウが既に開いていればそのウィンドウへフォーカスしてファイル／フォルダを開く。開いていなければ新規ウィンドウを起動して authority を解決した上で開く
+- **別ウィンドウで開く**: 行ホバー時の `$(empty-window)` ボタン、右クリックメニューの「Open in New Window」、または Quick Pick のアイテムボタンから別ウィンドウで開ける
+- **Quick Pick 版コマンド**: コマンドパレットから `Recent by Remote: Open...` を実行すると、全エントリを経路プレフィックス付きで検索・選択できる
 
 ### ツリー構造のイメージ
 
@@ -395,9 +395,9 @@ Dev Container エントリ（`dev-container+<hex>` または `attached-container
 
 公式 Dev Containers 拡張（`ms-vscode-remote.remote-containers`）は `extensionKind: ["ui"]` で実装されており、**WSL session の VS Code でも実行は常に Windows 側 VS Code 上**です。このため、Recent への記録のされ方には以下の制約があります:
 
-- WSL ターミナルから `code .` で開いた WSL session 上で「Reopen in Container」しても、authority hex JSON の `hostPath` は **Windows から見たパス（UNC `\\wsl.localhost\...`）** で書き込まれます。Dev Containers 拡張は UI(Windows) 側で動くので、ホスト folder を Windows 視点で参照するため
-- 結果として、Recent エントリ上は「Windows ネイティブの VS Code から開いた dev container」と「WSL session から開いた dev container」が **authority レベルで見分けられません**（どちらも `dev-container+<hex>`、`hostPath` は UNC で揃う）
-- 本拡張が UNC hostPath を `WSL (<distro>) > Dev Container` 配下にぶら下げているのは、**「ファイルが WSL 上にある」という事実**を反映するためであり、起動経路（どこから開いたか）を識別しているわけではありません
+- WSL ターミナルから `code .` で開いた WSL session 上で「Reopen in Container」を実行した場合でも、authority hex JSON の `hostPath` は **Windows から見たパス（UNC `\\wsl.localhost\...`）** として書き込まれます。これは Dev Containers 拡張が UI(Windows) 側で動作し、ホストフォルダを Windows 視点で参照するためです
+- 結果として、Recent エントリ上は「Windows ネイティブの VS Code から開いた dev container」と「WSL session から開いた dev container」が **authority レベルでは見分けられません**（どちらも `dev-container+<hex>`、`hostPath` は UNC で揃ってしまう）
+- 本拡張が UNC hostPath を `WSL (<distro>) > Dev Container` 配下にぶら下げているのは、あくまで **「ファイルが WSL 上にある」という事実**を反映するためであり、起動経路（どこから開いたか）を識別しているわけではありません
 
 #### `dev.containers.executeInWSL` 設定との関係
 
@@ -410,7 +410,7 @@ Dev Container エントリ（`dev-container+<hex>` または `attached-container
 
 つまりデフォルト挙動でも、workspace folder が WSL 上にあれば WSL 内 Docker が使われます。Windows 上のフォルダでも WSL 内 Docker を使いたい場合のみ ON にする設定です。
 
-**重要**: この設定を切り替えても、Recent エントリの `hostPath` 形式（UNC vs Linux）は変わりません。`hostPath` の表記は Dev Containers 拡張がホスト folder を表現する段で固まる話で、CLI 実行場所とは独立しています。本拡張から Docker engine の選択を逆算することはできません。
+**重要**: この設定を切り替えても、Recent エントリの `hostPath` 形式（UNC か POSIX か）は変わりません。`hostPath` の表記は Dev Containers 拡張がホストフォルダを表現する段階で確定するもので、CLI が実際に実行される場所とは独立しています。したがって、本拡張から Docker engine の選択を逆算することはできません。
 
 本拡張は Recent の表示と削除の補助だけを行うので、これらの設定に直接干渉することはありません。
 
@@ -418,9 +418,9 @@ Dev Container エントリ（`dev-container+<hex>` または `attached-container
 
 - 本拡張は以下の VS Code 内部コマンド（underscore prefix）を 2 つ使用しています。いずれも公開 API では同等の機能が提供されておらず、Microsoft の Remote 系 first-party 拡張も同じコマンドに依存しているため、実用上の安定性は十分にあります。ただし将来のバージョンで変更・削除される可能性はあります
   - `_workbench.getRecentlyOpened` — Recently Opened 一覧を取得。公開 API 化要望は [microsoft/vscode#124577](https://github.com/microsoft/vscode/issues/124577) で 2021-05 から OPEN のまま。メンテナ間で「昇格してもよい」と合意済みだが未実装
-  - `_files.windowOpen` — 標準 Open Recent と同じウィンドウルーティング（authority 一致するウィンドウへフォーカス + ファイル/フォルダ open）を行うコマンド。公開 API 化要望は [microsoft/vscode#123615](https://github.com/microsoft/vscode/issues/123615) で OPEN のまま。`vscode.openFolder`（フォルダ専用）と `vscode.open`（現在ウィンドウのみ）では cross-authority のファイルを正しく開けないため、メンテナ bpasero が [#122071 のコメント](https://github.com/microsoft/vscode/issues/122071#issuecomment-826279707) で本コマンドを公式回避策として推奨。本拡張は内部コマンドが利用できない環境（Web 版 vscode.dev など）では `vscode.open` / `vscode.openFolder` にフォールバックします
-- Dev Container の authority エンコード形式は Dev Containers 拡張のバージョンによって異なる場合があります。既知の 2 形式（JSON / 生パス）に対応していますが、未知の形式で `hostPath` も `@<auth>` 接尾辞も読み取れない場合、親経路が判定できず `Local > Dev Container` 配下に分類されます
-- フォルダエントリのアイコンには `folder-opened` codicon を採用しています。`folder` / `file` という id は VS Code 内部で sentinel として特別扱いされ、`resourceUri` がリモートで未解決の場合に何も描画されない既知の挙動（[microsoft/vscode#146479](https://github.com/microsoft/vscode/issues/146479)）があるため、それを避ける目的の選択です。代わりにファイルアイコンテーマによるフォルダ名別の特殊アイコン（`.git` / `node_modules` 等）は適用されません
+  - `_files.windowOpen` — 標準 Open Recent と同じウィンドウルーティング（authority が一致するウィンドウへフォーカスしてファイル／フォルダを開く）を行うコマンド。公開 API 化要望は [microsoft/vscode#123615](https://github.com/microsoft/vscode/issues/123615) で OPEN のまま。`vscode.openFolder`（フォルダ専用）と `vscode.open`（現在ウィンドウのみ）では cross-authority のファイルを正しく開けないため、メンテナ bpasero が [#122071 のコメント](https://github.com/microsoft/vscode/issues/122071#issuecomment-826279707) で本コマンドを公式の回避策として推奨しています。本拡張は内部コマンドが利用できない環境（Web 版 vscode.dev など）では `vscode.open` / `vscode.openFolder` にフォールバックします
+- Dev Container の authority エンコード形式は Dev Containers 拡張のバージョンによって異なる場合があります。既知の 2 形式（JSON / 生パス）に対応していますが、未知の形式で `hostPath` も `@<auth>` 接尾辞も読み取れない場合、親経路を判定できず `Local > Dev Container` 配下に分類されます
+- フォルダエントリのアイコンには `folder-opened` codicon を採用しています。`folder` / `file` という id は VS Code 内部で sentinel として特別扱いされており、`resourceUri` がリモートで未解決の場合に何も描画されない既知の挙動（[microsoft/vscode#146479](https://github.com/microsoft/vscode/issues/146479)）があるため、それを避ける目的での選択です。トレードオフとして、ファイルアイコンテーマによるフォルダ名別の特殊アイコン（`.git` / `node_modules` 等）は適用されません
 
 ## ライセンス
 

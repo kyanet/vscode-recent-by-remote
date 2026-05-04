@@ -1,7 +1,7 @@
 {
   "name": "recent-by-remote",
   "displayName": "Recent by Remote",
-  "description": "Group VS Code's Open Recent entries by remote route — Tunnel, WSL, SSH, Dev Container — in a Tree View for triage and cleanup.",
+  "description": "%description%",
   "version": "0.0.5",
   "publisher": "kyanet",
   "engines": {
@@ -45,7 +45,7 @@
       "activitybar": [
         {
           "id": "recentByRemote",
-          "title": "Recent by Remote",
+          "title": "%view.recentByRemote.title%",
           "icon": "$(history)"
         }
       ]
@@ -54,48 +54,48 @@
       "recentByRemote": [
         {
           "id": "recentByRemote.tree",
-          "name": "Recently Opened"
+          "name": "%view.tree.name%"
         }
       ]
     },
     "commands": [
       {
         "command": "recentByRemote.refresh",
-        "title": "Recent by Remote: Refresh",
+        "title": "%command.refresh.title%",
         "icon": "$(refresh)"
       },
       {
         "command": "recentByRemote.open",
-        "title": "Recent by Remote: Open..."
+        "title": "%command.open.title%"
       },
       {
         "command": "recentByRemote.openEntry",
-        "title": "Open",
+        "title": "%command.openEntry.title%",
         "icon": "$(folder-opened)"
       },
       {
         "command": "recentByRemote.openEntryInNewWindow",
-        "title": "Open in New Window",
+        "title": "%command.openEntryInNewWindow.title%",
         "icon": "$(empty-window)"
       },
       {
         "command": "recentByRemote.removeEntry",
-        "title": "Remove from Recent",
+        "title": "%command.removeEntry.title%",
         "icon": "$(trash)"
       },
       {
         "command": "recentByRemote.groupByType",
-        "title": "Recent by Remote: Group by Type (Workspaces / Files)",
+        "title": "%command.groupByType.title%",
         "icon": "$(list-tree)"
       },
       {
         "command": "recentByRemote.groupByRemote",
-        "title": "Recent by Remote: Group by Remote Only",
+        "title": "%command.groupByRemote.title%",
         "icon": "$(list-flat)"
       },
       {
         "command": "recentByRemote.toggleGroupMode",
-        "title": "Recent by Remote: Toggle Group Mode"
+        "title": "%command.toggleGroupMode.title%"
       }
     ],
     "menus": {

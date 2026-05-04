@@ -1,0 +1,13 @@
+{
+  "description": "Group VS Code's Open Recent entries by remote route — Tunnel, WSL, SSH, Dev Container — in a Tree View for triage and cleanup.",
+  "view.recentByRemote.title": "Recent by Remote",
+  "view.tree.name": "Recently Opened",
+  "command.refresh.title": "Recent by Remote: Refresh",
+  "command.open.title": "Recent by Remote: Open...",
+  "command.openEntry.title": "Open",
+  "command.openEntryInNewWindow.title": "Open in New Window",
+  "command.removeEntry.title": "Remove from Recent",
+  "command.groupByType.title": "Recent by Remote: Group by Type (Workspaces / Files)",
+  "command.groupByRemote.title": "Recent by Remote: Group by Remote Only",
+  "command.toggleGroupMode.title": "Recent by Remote: Toggle Group Mode"
+}

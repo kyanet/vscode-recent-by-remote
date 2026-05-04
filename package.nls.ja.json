@@ -1,0 +1,13 @@
+{
+  "description": "VS Code の Open Recent 履歴を接続経路 (Tunnel / WSL / SSH / Dev Container) ごとに分類した Tree View で整理・削除できるようにします。",
+  "view.recentByRemote.title": "Recent by Remote",
+  "view.tree.name": "最近開いたもの",
+  "command.refresh.title": "Recent by Remote: 更新",
+  "command.open.title": "Recent by Remote: 開く...",
+  "command.openEntry.title": "開く",
+  "command.openEntryInNewWindow.title": "別ウィンドウで開く",
+  "command.removeEntry.title": "履歴から削除",
+  "command.groupByType.title": "Recent by Remote: タイプ別グループ化 (Workspaces / Files)",
+  "command.groupByRemote.title": "Recent by Remote: 経路だけでグループ化",
+  "command.toggleGroupMode.title": "Recent by Remote: グループモードを切り替え"
+}

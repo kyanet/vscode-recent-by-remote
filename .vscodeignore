@@ -3,6 +3,7 @@
 .devcontainer/**
 .claude-data/**
 .pnpm-store/**
+.github/**
 out/**
 node_modules/**
 src/**

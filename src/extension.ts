@@ -162,15 +162,29 @@ export function activate(context: vscode.ExtensionContext): void {
         )
     );
 
+    const resolveTarget = (node: EntryNode | undefined): EntryNode | undefined => {
+        if (node) {
+            return node;
+        }
+        // Keybinding invocations don't pass an argument; fall back to the current selection.
+        return treeView.selection.find((n): n is EntryNode => n instanceof EntryNode);
+    };
+
     context.subscriptions.push(
-        vscode.commands.registerCommand('recentByRemote.openEntry', async (node: EntryNode) => {
-            await openEntry(node.entry);
+        vscode.commands.registerCommand('recentByRemote.openEntry', async (node?: EntryNode) => {
+            const target = resolveTarget(node);
+            if (target) {
+                await openEntry(target.entry);
+            }
         })
     );
 
     context.subscriptions.push(
-        vscode.commands.registerCommand('recentByRemote.openEntryInNewWindow', async (node: EntryNode) => {
-            await openEntry(node.entry, { newWindow: true });
+        vscode.commands.registerCommand('recentByRemote.openEntryInNewWindow', async (node?: EntryNode) => {
+            const target = resolveTarget(node);
+            if (target) {
+                await openEntry(target.entry, { newWindow: true });
+            }
         })
     );
 
@@ -186,6 +200,14 @@ export function activate(context: vscode.ExtensionContext): void {
 
     context.subscriptions.push(
         vscode.commands.registerCommand('recentByRemote.open', () => showOpenQuickPick())
+    );
+
+    context.subscriptions.push(
+        vscode.workspace.onDidChangeConfiguration(e => {
+            if (e.affectsConfiguration('recentByRemote.clickAction')) {
+                provider.refresh();
+            }
+        })
     );
 }
 

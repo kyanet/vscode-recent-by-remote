@@ -9,5 +9,8 @@
   "command.removeEntry.title": "Remove from Recent",
   "command.groupByType.title": "Recent by Remote: Group by Type (Workspaces / Files)",
   "command.groupByRemote.title": "Recent by Remote: Group by Remote Only",
-  "command.toggleGroupMode.title": "Recent by Remote: Toggle Group Mode"
+  "command.toggleGroupMode.title": "Recent by Remote: Toggle Group Mode",
+  "config.clickAction.description": "Action when a row in the Recent by Remote tree is clicked.",
+  "config.clickAction.openHere": "Open with VS Code's native window routing (focuses an existing window with a matching authority, otherwise spawns a new one — same behavior as VS Code's stock Open Recent).",
+  "config.clickAction.openInNewWindow": "Always open the entry in a new window. The right-click menu's 'Open' item still uses the native routing."
 }

@@ -142,6 +142,18 @@ Marketplace publishing is currently done manually with `vsce publish`.
 | `Recent by Remote: Group by Remote Only` | Switches to single-tier (route only) grouping |
 | `Recent by Remote: Toggle Group Mode` | Toggles the two modes (intended for keybinding) |
 
+### Keybindings
+
+| Keys | Action | When |
+|---|---|---|
+| `Ctrl+Enter` (`Cmd+Enter` on macOS) | Open the selected entry in a new window | The Recent by Remote tree is focused |
+
+### Settings
+
+| Setting | Default | Description |
+|---|---|---|
+| `recentByRemote.clickAction` | `openHere` | What happens when you click a row. `openHere` uses VS Code's native window routing (matches stock Open Recent). `openInNewWindow` makes every click open a new window — useful if you prefer the inverse default. The right-click "Open" menu item always uses native routing regardless of this setting |
+
 ## Classification logic
 
 Each entry is classified using the `remoteAuthority` field returned by the internal API `_workbench.getRecentlyOpened`.
@@ -204,6 +216,7 @@ This extension only assists with displaying and deleting Recents, so it does not
   - `_files.windowOpen` — Provides the same window routing as the official Open Recent (focus the matching-authority window and open the file/folder, or spawn a new window). The public-API request [microsoft/vscode#123615](https://github.com/microsoft/vscode/issues/123615) is also open. `vscode.openFolder` (folders only) and `vscode.open` (current window only) cannot correctly open cross-authority files; maintainer bpasero recommends this command as the official workaround in [a comment on #122071](https://github.com/microsoft/vscode/issues/122071#issuecomment-826279707). When internal commands are unavailable (e.g. on the vscode.dev web client), the extension falls back to `vscode.open` / `vscode.openFolder`
 - Dev Container authority encoding may vary across Dev Containers extension versions. The two known formats (JSON / raw path) are supported, but if neither the `hostPath` nor the `@<auth>` suffix can be parsed in an unknown format, the parent route cannot be determined and the entry falls under `Local > Dev Container`
 - Folder entries use the `folder-opened` codicon. The ids `folder` / `file` are special-cased internally by VS Code as sentinels — when `resourceUri` is unresolved on a remote, nothing is drawn ([microsoft/vscode#146479](https://github.com/microsoft/vscode/issues/146479)). Using `folder-opened` avoids that. The trade-off is that file-icon-theme folder-name specializations (`.git` / `node_modules` etc.) don't apply
+- The `$(empty-window)` inline button only appears on hover. VS Code's TreeView API has no way to make inline buttons permanently visible from the extension side ([microsoft/vscode#78829](https://github.com/microsoft/vscode/issues/78829)). Workarounds: use `Ctrl+Enter` / `Cmd+Enter` with the tree focused, the right-click "Open in New Window" menu item, or set `recentByRemote.clickAction` to `openInNewWindow` to invert the default click behavior
 
 ## License
 
@@ -359,6 +372,18 @@ git push --follow-tags
 
 > VS Code を日本語ロケールで使っている場合、コマンドパレット上のコマンド title は自動的に日本語表記（例: 「Recent by Remote: 更新」）に切り替わります。
 
+### キーバインド
+
+| キー | 動作 | 条件 |
+|---|---|---|
+| `Ctrl+Enter`（macOS は `Cmd+Enter`） | 選択中エントリを新規ウィンドウで開く | Recent by Remote のツリーにフォーカス |
+
+### 設定
+
+| 設定 | デフォルト | 説明 |
+|---|---|---|
+| `recentByRemote.clickAction` | `openHere` | 行クリック時の動作。`openHere` は VS Code 標準のウィンドウルーティング（標準 Open Recent と同じ挙動）。`openInNewWindow` にすると毎回新規ウィンドウで開く（クリックを逆の挙動にしたい場合用）。右クリックメニューの「Open」はこの設定に関わらず常に標準ルーティング |
+
 ## 経路分類のロジック
 
 各エントリは VS Code 内部 API `_workbench.getRecentlyOpened` から取得した `remoteAuthority` フィールドを元に分類されます。
@@ -421,6 +446,7 @@ Dev Container エントリ（`dev-container+<hex>` または `attached-container
   - `_files.windowOpen` — 標準 Open Recent と同じウィンドウルーティング（authority が一致するウィンドウへフォーカスしてファイル／フォルダを開く）を行うコマンド。公開 API 化要望は [microsoft/vscode#123615](https://github.com/microsoft/vscode/issues/123615) で OPEN のまま。`vscode.openFolder`（フォルダ専用）と `vscode.open`（現在ウィンドウのみ）では cross-authority のファイルを正しく開けないため、メンテナ bpasero が [#122071 のコメント](https://github.com/microsoft/vscode/issues/122071#issuecomment-826279707) で本コマンドを公式の回避策として推奨しています。本拡張は内部コマンドが利用できない環境（Web 版 vscode.dev など）では `vscode.open` / `vscode.openFolder` にフォールバックします
 - Dev Container の authority エンコード形式は Dev Containers 拡張のバージョンによって異なる場合があります。既知の 2 形式（JSON / 生パス）に対応していますが、未知の形式で `hostPath` も `@<auth>` 接尾辞も読み取れない場合、親経路を判定できず `Local > Dev Container` 配下に分類されます
 - フォルダエントリのアイコンには `folder-opened` codicon を採用しています。`folder` / `file` という id は VS Code 内部で sentinel として特別扱いされており、`resourceUri` がリモートで未解決の場合に何も描画されない既知の挙動（[microsoft/vscode#146479](https://github.com/microsoft/vscode/issues/146479)）があるため、それを避ける目的での選択です。トレードオフとして、ファイルアイコンテーマによるフォルダ名別の特殊アイコン（`.git` / `node_modules` 等）は適用されません
+- 行ホバー時に出る `$(empty-window)` のインラインボタンは hover 時のみ表示されます。VS Code の TreeView API には拡張機能側からインラインボタンを常時表示にする手段がありません（[microsoft/vscode#78829](https://github.com/microsoft/vscode/issues/78829)）。代替手段として、ツリーフォーカス状態の `Ctrl+Enter` / `Cmd+Enter`、右クリックメニューの「Open in New Window」、または設定 `recentByRemote.clickAction` を `openInNewWindow` に変更することでクリックの既定動作を反転できます
 
 ## ライセンス
 

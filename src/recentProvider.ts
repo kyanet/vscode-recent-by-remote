@@ -96,8 +96,13 @@ export class EntryNode extends vscode.TreeItem {
         if (entry.entryType === 'file' || entry.entryType === 'folder') {
             this.resourceUri = entry.uri;
         }
+        const clickAction = vscode.workspace
+            .getConfiguration('recentByRemote')
+            .get<string>('clickAction', 'openHere');
         this.command = {
-            command: 'recentByRemote.openEntry',
+            command: clickAction === 'openInNewWindow'
+                ? 'recentByRemote.openEntryInNewWindow'
+                : 'recentByRemote.openEntry',
             title: 'Open',
             arguments: [this],
         };

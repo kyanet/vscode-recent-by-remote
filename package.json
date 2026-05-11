@@ -158,6 +158,32 @@
           "group": "navigation@2"
         }
       ]
+    },
+    "keybindings": [
+      {
+        "command": "recentByRemote.openEntryInNewWindow",
+        "key": "ctrl+enter",
+        "mac": "cmd+enter",
+        "when": "focusedView == recentByRemote.tree"
+      }
+    ],
+    "configuration": {
+      "title": "Recent by Remote",
+      "properties": {
+        "recentByRemote.clickAction": {
+          "type": "string",
+          "enum": [
+            "openHere",
+            "openInNewWindow"
+          ],
+          "default": "openHere",
+          "description": "%config.clickAction.description%",
+          "enumDescriptions": [
+            "%config.clickAction.openHere%",
+            "%config.clickAction.openInNewWindow%"
+          ]
+        }
+      }
     }
   },
   "packageManager": "pnpm@10.33.2",

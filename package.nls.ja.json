@@ -9,5 +9,8 @@
   "command.removeEntry.title": "履歴から削除",
   "command.groupByType.title": "Recent by Remote: タイプ別グループ化 (Workspaces / Files)",
   "command.groupByRemote.title": "Recent by Remote: 経路だけでグループ化",
-  "command.toggleGroupMode.title": "Recent by Remote: グループモードを切り替え"
+  "command.toggleGroupMode.title": "Recent by Remote: グループモードを切り替え",
+  "config.clickAction.description": "Recent by Remote のツリー上で行をクリックしたときの動作。",
+  "config.clickAction.openHere": "VS Code 標準のウィンドウルーティングで開く（authority が一致するウィンドウがあればそれにフォーカス、無ければ新規ウィンドウを起動。VS Code 標準の Open Recent と同じ挙動）",
+  "config.clickAction.openInNewWindow": "常に新規ウィンドウで開く。右クリックメニューの「Open」は引き続き標準ルーティングで開きます"
 }

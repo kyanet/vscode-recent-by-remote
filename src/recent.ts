@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { EntryType, RecentEntry, RemoteKind } from './types';
+import { DevContainerConfig, EntryType, RecentEntry, RemoteKind } from './types';
 
 function labelFromHostPath(hostPath: string): string | undefined {
     const wsl = hostPath.match(/^\\\\wsl\.localhost\\([^\\]+)\\/i)
@@ -19,6 +19,7 @@ function labelFromHostPath(hostPath: string): string | undefined {
 interface DevContainerInfo {
     hostLabel?: string;
     hostPath?: string;
+    config?: DevContainerConfig;
 }
 
 function decodeDevContainerInfo(authority: string): DevContainerInfo {
@@ -36,18 +37,31 @@ function decodeDevContainerInfo(authority: string): DevContainerInfo {
         try {
             const obj = JSON.parse(decoded) as Record<string, unknown>;
             const hostPath = typeof obj['hostPath'] === 'string' ? obj['hostPath'] as string : undefined;
+            const configFileRaw = obj['configFile'];
+            let configFile: string | undefined;
+            if (typeof configFileRaw === 'string') {
+                configFile = configFileRaw;
+            } else if (configFileRaw && typeof configFileRaw === 'object') {
+                const cfPath = (configFileRaw as Record<string, unknown>)['path'];
+                if (typeof cfPath === 'string') { configFile = cfPath; }
+            }
+            const localDocker = typeof obj['localDocker'] === 'boolean'
+                ? (obj['localDocker'] as boolean)
+                : undefined;
             return {
                 hostLabel: hostPath ? labelFromHostPath(hostPath) : undefined,
                 hostPath,
+                config: { configFile, localDocker, hasPayload: true },
             };
         } catch {
-            // 旧形式にフォールスルー
+            // Fall through to the raw-path form below.
         }
     }
 
     return {
         hostLabel: labelFromHostPath(decoded),
         hostPath: decoded,
+        config: { hasPayload: false },
     };
 }
 
@@ -57,6 +71,7 @@ interface AuthorityInfo {
     hostPath?: string;
     parentKind?: RemoteKind;
     parentHostLabel?: string;
+    devContainerConfig?: DevContainerConfig;
 }
 
 export function classifyAuthority(authority: string | undefined): AuthorityInfo {
@@ -100,6 +115,7 @@ export function classifyAuthority(authority: string | undefined): AuthorityInfo 
             hostPath: dcInfo.hostPath,
             parentKind,
             parentHostLabel,
+            devContainerConfig: dcInfo.config,
         };
     }
     return { kind: 'other', hostLabel: authority };
@@ -274,7 +290,7 @@ export async function loadAndClassify(): Promise<RecentEntry[]> {
 
         const remoteAuthority = authorityFromMetaOrUri(obj, baseUri);
 
-        const { kind, hostLabel, hostPath, parentKind, parentHostLabel } = classifyAuthority(remoteAuthority);
+        const { kind, hostLabel, hostPath, parentKind, parentHostLabel, devContainerConfig } = classifyAuthority(remoteAuthority);
         const entryUri = buildEntryUri(baseUri, remoteAuthority);
         const displayName = displayNameFor(baseUri.path, entryType);
 
@@ -289,6 +305,7 @@ export async function loadAndClassify(): Promise<RecentEntry[]> {
             fullPath: baseUri.path,
             hostPath,
             rawAuthority: remoteAuthority,
+            devContainerConfig,
         });
     }
 
@@ -302,7 +319,7 @@ export async function loadAndClassify(): Promise<RecentEntry[]> {
 
         const remoteAuthority = authorityFromMetaOrUri(obj, baseUri);
 
-        const { kind, hostLabel, hostPath, parentKind, parentHostLabel } = classifyAuthority(remoteAuthority);
+        const { kind, hostLabel, hostPath, parentKind, parentHostLabel, devContainerConfig } = classifyAuthority(remoteAuthority);
         const entryUri = buildEntryUri(baseUri, remoteAuthority);
         const displayName = basename(baseUri.path) || baseUri.path;
 
@@ -317,6 +334,7 @@ export async function loadAndClassify(): Promise<RecentEntry[]> {
             fullPath: baseUri.path,
             hostPath,
             rawAuthority: remoteAuthority,
+            devContainerConfig,
         });
     }
 

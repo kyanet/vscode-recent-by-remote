@@ -147,14 +147,34 @@ function describeEntry(entry: RecentEntry): string | undefined {
     if (entry.entryType === 'connection') {
         return undefined;
     }
+    let base: string | undefined;
     if (entry.hostPath) {
         const rel = relativeWithinHost(entry.hostPath, entry.fullPath, entry.entryType === 'file');
-        if (rel !== undefined) { return rel || undefined; }
+        if (rel !== undefined) { base = rel || undefined; }
     }
-    if (entry.entryType === 'file') {
-        return dirnameOf(entry.fullPath) || entry.fullPath;
+    if (base === undefined) {
+        base = entry.entryType === 'file'
+            ? (dirnameOf(entry.fullPath) || entry.fullPath)
+            : entry.fullPath;
     }
-    return entry.fullPath;
+    // For Dev Container entries, surface whether the authority carries a config payload
+    // so two history entries with the same hostPath but different authority encodings
+    // can be told apart at a glance.
+    if (entry.kind === 'devcontainer') {
+        const cfg = entry.devContainerConfig;
+        const suffix = cfg?.configFile
+            ? configFileSuffix(cfg.configFile, entry.hostPath)
+            : '(no config recorded)';
+        return base ? `${base}  ${suffix}` : suffix;
+    }
+    return base;
+}
+
+function configFileSuffix(configFile: string, hostPath: string | undefined): string {
+    if (hostPath && configFile.startsWith(hostPath + '/')) {
+        return configFile.substring(hostPath.length + 1);
+    }
+    return configFile;
 }
 
 type BadgeColor = 'default' | 'route' | 'parent';
@@ -232,6 +252,18 @@ function buildTooltip(entry: RecentEntry): vscode.MarkdownString {
         md.appendMarkdown('**path**\n\n');
         md.appendMarkdown(htmlMonoWrap(entry.fullPath) + '\n\n');
     }
+    if (entry.kind === 'devcontainer') {
+        const cfg = entry.devContainerConfig;
+        md.appendMarkdown('**dev container config**\n\n');
+        if (cfg?.configFile) {
+            md.appendMarkdown(htmlMonoWrap(cfg.configFile) + '\n\n');
+        } else {
+            md.appendMarkdown('_(not recorded)_\n\n');
+        }
+        if (cfg?.localDocker !== undefined) {
+            md.appendMarkdown(`**localDocker**: ${cfg.localDocker}\n\n`);
+        }
+    }
     return md;
 }
 
@@ -242,12 +274,19 @@ const ENTRY_TYPE_RANK: Record<EntryType, number> = {
     connection: 2,
 };
 
+function devContainerPayloadRank(entry: RecentEntry): number {
+    if (entry.kind !== 'devcontainer') { return 0; }
+    return entry.devContainerConfig?.hasPayload ? 0 : 1;
+}
+
 function sortEntriesWithinGroup(entries: RecentEntry[]): RecentEntry[] {
     return entries
         .map((entry, index) => ({ entry, index }))
         .sort((a, b) => {
             const rankDiff = ENTRY_TYPE_RANK[a.entry.entryType] - ENTRY_TYPE_RANK[b.entry.entryType];
             if (rankDiff !== 0) { return rankDiff; }
+            const payloadDiff = devContainerPayloadRank(a.entry) - devContainerPayloadRank(b.entry);
+            if (payloadDiff !== 0) { return payloadDiff; }
             return a.index - b.index;
         })
         .map(({ entry }) => entry);

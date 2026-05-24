@@ -122,6 +122,67 @@ async function showOpenQuickPick(): Promise<void> {
     qp.show();
 }
 
+async function dumpRawRecentlyOpened(): Promise<void> {
+    const raw = await vscode.commands.executeCommand<unknown>('_workbench.getRecentlyOpened');
+    const decoded = decorateRaw(raw);
+    const doc = await vscode.workspace.openTextDocument({
+        language: 'json',
+        content: JSON.stringify(decoded, null, 2),
+    });
+    await vscode.window.showTextDocument(doc, { preview: false });
+}
+
+function decorateRaw(raw: unknown): unknown {
+    if (!raw || typeof raw !== 'object') { return raw; }
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+        if (Array.isArray(v)) {
+            out[k] = v.map(item => decorateItem(item));
+        } else {
+            out[k] = v;
+        }
+    }
+    return out;
+}
+
+function decorateItem(item: unknown): unknown {
+    if (!item || typeof item !== 'object') { return item; }
+    const entry = { ...(item as Record<string, unknown>) };
+    for (const key of ['folderUri', 'workspaceUri', 'fileUri']) {
+        const uri = entry[key];
+        if (typeof uri !== 'string') { continue; }
+        const decoded = tryDecodeAuthority(uri);
+        if (decoded) {
+            entry[`_decoded_${key}`] = decoded;
+        }
+    }
+    if (entry['workspace'] && typeof entry['workspace'] === 'object') {
+        entry['workspace'] = decorateItem(entry['workspace']);
+    }
+    return entry;
+}
+
+function tryDecodeAuthority(uriStr: string): unknown {
+    try {
+        const u = vscode.Uri.parse(uriStr);
+        if (!u.authority) { return undefined; }
+        const m = u.authority.match(/^(dev-container|attached-container)\+([0-9a-fA-F]+)(?:@(.+))?$/);
+        if (!m) { return { authority: u.authority }; }
+        const hex = m[2];
+        const decoded = Buffer.from(hex, 'hex').toString('utf8');
+        let parsed: unknown = decoded;
+        try { parsed = JSON.parse(decoded); } catch { /* keep string */ }
+        return {
+            kindPrefix: m[1],
+            hexDecoded: parsed,
+            atSuffix: m[3],
+            path: u.path,
+        };
+    } catch {
+        return undefined;
+    }
+}
+
 export function activate(context: vscode.ExtensionContext): void {
     const provider = new RecentWorkspacesProvider();
 
@@ -200,6 +261,10 @@ export function activate(context: vscode.ExtensionContext): void {
 
     context.subscriptions.push(
         vscode.commands.registerCommand('recentByRemote.open', () => showOpenQuickPick())
+    );
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand('recentByRemote.dumpRaw', () => dumpRawRecentlyOpened())
     );
 
     context.subscriptions.push(

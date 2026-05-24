@@ -1,5 +1,9 @@
 # Recent by Remote
 
+[![Marketplace](https://img.shields.io/visual-studio-marketplace/v/kyanet.recent-by-remote?label=Marketplace)](https://marketplace.visualstudio.com/items?itemName=kyanet.recent-by-remote)
+[![Installs](https://img.shields.io/visual-studio-marketplace/i/kyanet.recent-by-remote)](https://marketplace.visualstudio.com/items?itemName=kyanet.recent-by-remote)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 **English** | [日本語](#日本語)
 
 A VS Code extension that **groups your "Open Recent" history by remote route** and lets you triage and delete unwanted entries from within a Tree View.
@@ -11,6 +15,22 @@ VS Code's official Quick Pick (`Ctrl+R`) lists every Remote-hosted entry with si
 This extension consumes the official Recently Opened list as-is and adds a route-grouped Tree View to the Activity Bar. It does **not** maintain its own history — it only provides display and delete operations on top of the official data.
 
 Because the tree is split per route, it's also useful for **finding and bulk-cleaning entries from routes you no longer use** (decommissioned tunnel hosts, stopped SSH machines, leftover `\\wsl.localhost\<distro>\...` entries from removed dev containers, etc.). Each row's trash icon removes the entry from the official Recently Opened list directly.
+
+## How is this different from the built-in Remote Explorer?
+
+VS Code ships a **Remote Explorer** view that lists *targets* you can connect to (SSH hosts, Dev Containers, Tunnels). Recent by Remote complements it from the other direction — it lists *what you've opened*, grouped by route:
+
+| | Remote Explorer (built-in) | Recent by Remote |
+|---|---|---|
+| **Primary purpose** | Connection management (Targets) | Recently Opened triage & cleanup |
+| **Data source** | Per-provider (varies) | `_workbench.getRecentlyOpened` (single source of truth) |
+| **UI shape** | Separate view per provider, switched via a dropdown | One unified tree for SSH / WSL / Tunnel / Local / Dev Container |
+| **Dev Container parent route** | Flat list of containers — no indication of which route they were reached through | Nested under `Tunnel (host) > Dev Container`, `WSL (distro) > Dev Container`, etc. |
+| **Multiple history entries for the same project** | Same-looking rows side by side, no way to tell them apart from the UI | Recognises that the underlying authorities differ and surfaces the `devcontainer.json` path so each row is distinguishable (see [Dev Container authority forms](#dev-container-authority-forms)) |
+| **Recent files (individual files)** | Not shown | Listed alongside folders/workspaces |
+| **Cleanup of stale routes** | Hard — requires removing the connection target itself | Easy — trash icon per entry, scoped per route |
+
+Remote Explorer is great when you know which host you want to attach to. Recent by Remote is great when you want to revisit (or clean up) something you actually opened recently.
 
 ## Supported Platforms
 
@@ -32,22 +52,47 @@ The tree is split per route, with the `Dev Container` sub-group **placed at the 
 
 ## Features
 
-- **Route-based grouping**: Auto-classifies entries into Tunnel / WSL / SSH / Local / Other. Each header gets a representative icon (`radio-tower` / `terminal-linux` / `key` / `device-desktop` / `question`)
-- **Per-host headers**: Further splits by host into `Tunnel (myhost)`, `WSL (Ubuntu)`, `SSH (myserver)`
-- **Dev Containers nested under their parent route**: Dev Containers don't form a top-level route group — they're nested as a `Dev Container` sub-group (`package` icon, item-count description like `3 items`) under the parent host route (e.g. `Tunnel (myhost)`, `WSL (Ubuntu)`, `Local`). This makes it visually clear which route each container is reached through
-- **Direct entries first, Dev Container sub-group last**: Within each route group, direct folders / workspaces / `(connect, no folder)` come first, with the `Dev Container` sub-group at the bottom. This visually separates direct opens from container-internal opens, so identically-named folders (e.g. `myProject1 /home/user/myProject1` directly under WSL vs. the same name inside a Dev Container at `\\wsl.localhost\<distro>\home\user\myProject1`) are easy to tell apart
-- **Per-hostPath sub-grouping inside Dev Container**: When the same devcontainer definition is opened from multiple subfolders, those entries are collapsed into a single node keyed by `hostPath` (the host-side project folder embedded in the authority — `package` icon, visually consistent with the Dev Container sub-group). Containers that collide at the in-container path `/workspace` are still distinguishable by their host-side project name
-- **Theme-aware tooltip badges**: On hover, entry kind / type / parent route (for Dev Containers) are rendered as badges that follow VS Code theme colors (`--vscode-charts-*` / `--vscode-badge-*`). Visible in both Dark and Light themes; the full `uri` / `host` / `path` info is also shown
-- **Connect-only entries**: Each Tunnel / WSL / SSH route gets an auto-added `(connect, no folder)` pseudo-entry — a single click connects you to the remote without opening a folder. Even when only Dev Container entries remain on a route (e.g. `WSL (distro-X)` only has dev container history), the parent route is derived from the authority so `(connect, no folder)` is still surfaced, guaranteeing a path back to a bare session on that distro
-- **Folders, workspaces, and files in one view**: The view shows recent folders, workspaces, **and recent files** (distinguishable by icon)
-- **Project-root-relative file display**: When an in-container `fullPath` is under `hostPath`, the description is shortened to the relative path. For non-standard mount layouts where the in-container absolute path differs, the absolute path is shown instead
-- **Group mode toggle**: A title bar icon toggles between "Group by Remote only (mixed types)" and "Two-tier: Type → Remote (Workspaces & Folders / Files separated)". The choice is persisted globally
-- **Per-entry deletion**: A trash icon next to each entry removes it from the official Recently Opened list
-- **One-click open with VS Code's native window routing**: Clicking an entry opens it with the same routing as the official Open Recent: it focuses an existing window with a matching authority, otherwise it spawns a new window that resolves the authority
-- **Open in new window**: Available via the `$(empty-window)` row-hover button, the "Open in New Window" right-click menu item, or the item button in the Quick Pick
-- **Quick Pick command**: `Recent by Remote: Open...` from the command palette searches all entries, with the route shown as a prefix
+### Route grouping
 
-### Tree structure
+- **Auto-classifies entries** into Tunnel / WSL / SSH / Local / Other, each with a representative icon (`radio-tower` / `terminal-linux` / `key` / `device-desktop` / `question`).
+- **Per-host headers** further split by host: `Tunnel (myhost)`, `WSL (Ubuntu)`, `SSH (myserver)`.
+- **All providers in one tree** — no dropdown switching between SSH / WSL / Tunnel views.
+
+### Dev Container handling
+
+- **Nested under the parent route** — Dev Containers are placed as a `Dev Container` sub-group (`package` icon, with a `3 items` count) inside the host route they were reached through (e.g. `Tunnel (myhost) > Dev Container`). Container vs. direct-open is always disambiguated.
+- **Sub-grouped by `hostPath`** (host-side project folder embedded in the authority). When the same devcontainer is opened from root and from sub-folders, those are collapsed into a single node. Containers that collide at the in-container path `/workspace` stay distinguishable by their host-side project name.
+- **`devcontainer.json` path surfaced per entry** — see [Dev Container authority forms](#dev-container-authority-forms). When two history entries share the same hostPath, the configFile path tells you which one was opened how.
+
+### Opening & cleanup
+
+- **One-click open with native window routing** — focuses an existing window with a matching authority, otherwise spawns a new one. Same behaviour as the stock Open Recent.
+- **Open in new window** — `$(empty-window)` row-hover button, right-click "Open in New Window", or the Quick Pick item button.
+- **Per-entry delete** — trash icon removes the entry from the official Recently Opened list.
+- **Connect-only entries** — each Tunnel / WSL / SSH route gets a `(connect, no folder)` pseudo-entry. Even when a route has only Dev Container history left, the parent is derived from the authority so the connect entry still appears.
+
+### Entry types in one view
+
+- **Folders, workspaces, and files** are all shown, distinguished by icon.
+- **Project-root-relative file paths** — when a file's in-container path lives under the `hostPath`, the description shortens to the relative path. For non-standard mount layouts the absolute path is shown.
+
+### Tooltip on hover
+
+Theme-aware badges show entry kind / route / parent route (for Dev Containers), plus the full `uri`, `host` and `path`. For Dev Container entries the **`devcontainer.json` path** (or `(not recorded)`) is also shown. Colours follow VS Code theme variables (`--vscode-charts-*` / `--vscode-badge-*`) and work in both Dark and Light themes.
+
+### View modes
+
+- **Group mode toggle** — title-bar icon switches between:
+  - *Group by Remote only* — folders / workspaces / files are mixed within each route.
+  - *Two-tier (Type → Remote)* — `Workspaces & Folders` and `Files` are separated, each grouped by route.
+
+  The choice persists globally.
+
+### Quick Pick
+
+`Recent by Remote: Open...` from the command palette searches all entries with the route shown as a prefix, plus an `$(empty-window)` button to open in a new window.
+
+## Tree structure
 
 Each route group is laid out as "direct entries → Dev Container sub-group at the end".
 
@@ -90,7 +135,7 @@ Search for `Recent by Remote` in the Extensions view and install. The Marketplac
 
 ### From a `.vsix`
 
-Download the `.vsix` from the Releases page, then in the Extensions view choose the `...` menu → **Install from VSIX...**.
+Download the `.vsix` from the [Releases page](https://github.com/kyanet/vscode-recent-by-remote/releases), then in the Extensions view choose the `...` menu → **Install from VSIX...**.
 
 ### Build from source
 
@@ -100,23 +145,6 @@ pnpm run vsix
 ```
 
 `pnpm run vsix` runs the production build (type check + lint + esbuild) and outputs `recent-by-remote-<version>.vsix`. Install the resulting `.vsix` using the procedure above.
-
-## Release flow
-
-A tag push triggers a GitHub Actions workflow that builds the `.vsix` and attaches it to a GitHub Release. Maintainer steps:
-
-```bash
-pnpm version patch    # patch / minor / major. Updates package.json and creates a git tag
-git push --follow-tags
-```
-
-When a `v*` tag is pushed, [.github/workflows/release.yml](.github/workflows/release.yml) runs:
-
-1. Verifies the tag version matches `package.json`
-2. Builds the `.vsix` via `pnpm run vsix`
-3. Creates a GitHub Release with the `.vsix` attached (release notes auto-generated from commits since the previous tag)
-
-Marketplace publishing is currently done manually with `vsce publish`.
 
 ## Usage
 
@@ -141,6 +169,7 @@ Marketplace publishing is currently done manually with `vsce publish`.
 | `Recent by Remote: Group by Type (Workspaces / Files)` | Switches to two-tier (type → route) grouping |
 | `Recent by Remote: Group by Remote Only` | Switches to single-tier (route only) grouping |
 | `Recent by Remote: Toggle Group Mode` | Toggles the two modes (intended for keybinding) |
+| `Recent by Remote: Dump Recently Opened (raw JSON)` | Opens a new editor with the raw `_workbench.getRecentlyOpened` result, with Dev Container authority hex decoded inline. Intended for debugging and support tickets |
 
 ### Keybindings
 
@@ -152,7 +181,14 @@ Marketplace publishing is currently done manually with `vsce publish`.
 
 | Setting | Default | Description |
 |---|---|---|
-| `recentByRemote.clickAction` | `openHere` | What happens when you click a row. `openHere` uses VS Code's native window routing (matches stock Open Recent). `openInNewWindow` makes every click open a new window — useful if you prefer the inverse default. The right-click "Open" menu item always uses native routing regardless of this setting |
+| `recentByRemote.clickAction` | `openHere` | What happens when you click a row. See values below. |
+
+`recentByRemote.clickAction` values:
+
+- **`openHere`** — Use VS Code's native window routing. Focuses an existing window with a matching authority, otherwise spawns a new one. Same behaviour as the stock Open Recent.
+- **`openInNewWindow`** — Always open the clicked entry in a new window. Useful if you prefer the inverse default.
+
+The right-click "Open" menu item always uses native routing regardless of this setting.
 
 ## Classification logic
 
@@ -169,7 +205,7 @@ Each entry is classified using the `remoteAuthority` field returned by the inter
 
 ### Dev Container parent route detection
 
-Dev Container entries (authorities starting with `dev-container+<hex>` or `attached-container+<hex>`) are placed under a `Dev Container` sub-group inside their parent host route. The extension decodes the authority hex (JSON) and the trailing `@<auth>` suffix to determine the parent:
+Dev Container entries (authorities starting with `dev-container+<hex>` or `attached-container+<hex>`) are placed under a `Dev Container` sub-group inside their parent host route. The extension decodes the authority hex payload (see [Dev Container authority forms](#dev-container-authority-forms) below) and the trailing `@<auth>` suffix to determine the parent:
 
 | hostPath / suffix | Parent group |
 |---|---|
@@ -183,6 +219,27 @@ Dev Container entries (authorities starting with `dev-container+<hex>` or `attac
 *1 The official Dev Containers extension is fixed at `extensionKind: ["ui"]`, so even Dev Containers opened from a WSL session record `hostPath` in Windows-side UNC form (see next section). This extension extracts the WSL distro name from the UNC and nests the entry under the matching `WSL (<distro>)` group.
 
 Inside the Dev Container sub-group, entries are further sub-grouped by `hostPath` (host-side project folder). Even when the same devcontainer definition has multiple histories from root and subfolder opens, they're collapsed into a single node (`package` icon). The sub-group label uses the basename of the host-side folder, so multiple Dev Containers that collide at in-container path `/workspace` are still distinguishable by the host-side project name.
+
+### Dev Container authority forms
+
+The hex part of a `dev-container+<hex>` authority decodes into **one of two payload shapes**, both produced by the current Dev Containers extension:
+
+| Form | Hex decoded to | Generated when |
+|---|---|---|
+| **JSON payload** | `{ "hostPath": ..., "configFile": ..., "localDocker": ..., "settings": ... }` | The extension records a `configFile` (and/or `settings`) for the open. This is the common case for "Reopen in Container" with a `devcontainer.json` |
+| **Raw host path** | Just the host path as a plain string (e.g. `/home/user/project`) | The same authority builder is called without a `configFile` or `settings`. The resulting label is just `[Dev Container]` with no devcontainer name |
+
+These two forms can coexist for the same project, producing **two seemingly-identical history entries** that point at the same `hostPath` but have different underlying authorities. The built-in Remote Explorer renders them as visually identical rows.
+
+Recent by Remote tells them apart:
+
+- The **JSON form** entry shows the `devcontainer.json` path (relative to the project folder when possible) in the row description, and the tooltip shows `dev container config: /path/to/devcontainer.json`.
+- The **raw form** entry shows `(no config recorded)` in the description and tooltip.
+- Within the same `hostPath` sub-group, entries that carry a config payload are sorted above entries that don't, so the more informative row is easier to click.
+
+When in doubt, prefer the entry that has the `devcontainer.json` path attached — the raw form may be a stale history record from an open that didn't capture the config payload.
+
+For deeper debugging, run **`Recent by Remote: Dump Recently Opened (raw JSON)`** from the command palette. It opens a new editor with the raw `_workbench.getRecentlyOpened` result plus the decoded authority payload inline.
 
 ### Dev Containers extension always runs on the Windows VS Code side (UI extension)
 
@@ -214,9 +271,26 @@ This extension only assists with displaying and deleting Recents, so it does not
 - This extension uses two VS Code internal commands (underscore prefix). There is no public API equivalent for either, but Microsoft's first-party Remote extensions depend on the same commands, so in practice they're stable. They could still change or be removed in future versions:
   - `_workbench.getRecentlyOpened` — Retrieves the Recently Opened list. The public-API request [microsoft/vscode#124577](https://github.com/microsoft/vscode/issues/124577) has been open since 2021-05. Maintainers agree it could be promoted, but no action has been taken
   - `_files.windowOpen` — Provides the same window routing as the official Open Recent (focus the matching-authority window and open the file/folder, or spawn a new window). The public-API request [microsoft/vscode#123615](https://github.com/microsoft/vscode/issues/123615) is also open. `vscode.openFolder` (folders only) and `vscode.open` (current window only) cannot correctly open cross-authority files; maintainer bpasero recommends this command as the official workaround in [a comment on #122071](https://github.com/microsoft/vscode/issues/122071#issuecomment-826279707). When internal commands are unavailable (e.g. on the vscode.dev web client), the extension falls back to `vscode.open` / `vscode.openFolder`
-- Dev Container authority encoding may vary across Dev Containers extension versions. The two known formats (JSON / raw path) are supported, but if neither the `hostPath` nor the `@<auth>` suffix can be parsed in an unknown format, the parent route cannot be determined and the entry falls under `Local > Dev Container`
+- Dev Container authorities come in two payload forms (JSON / raw host path) — both are supported, see [Dev Container authority forms](#dev-container-authority-forms). If neither the `hostPath` nor the `@<auth>` suffix can be parsed (e.g. a future encoding the extension hasn't seen), the parent route cannot be determined and the entry falls under `Local > Dev Container`
 - Folder entries use the `folder-opened` codicon. The ids `folder` / `file` are special-cased internally by VS Code as sentinels — when `resourceUri` is unresolved on a remote, nothing is drawn ([microsoft/vscode#146479](https://github.com/microsoft/vscode/issues/146479)). Using `folder-opened` avoids that. The trade-off is that file-icon-theme folder-name specializations (`.git` / `node_modules` etc.) don't apply
 - The `$(empty-window)` inline button only appears on hover. VS Code's TreeView API has no way to make inline buttons permanently visible from the extension side ([microsoft/vscode#78829](https://github.com/microsoft/vscode/issues/78829)). Workarounds: use `Ctrl+Enter` / `Cmd+Enter` with the tree focused, the right-click "Open in New Window" menu item, or set `recentByRemote.clickAction` to `openInNewWindow` to invert the default click behavior
+
+## Release flow (for maintainers)
+
+A tag push triggers a GitHub Actions workflow that builds the `.vsix` and attaches it to a GitHub Release. Maintainer steps:
+
+```bash
+pnpm version patch    # patch / minor / major. Updates package.json and creates a git tag
+git push --follow-tags
+```
+
+When a `v*` tag is pushed, [.github/workflows/release.yml](.github/workflows/release.yml) runs:
+
+1. Verifies the tag version matches `package.json`
+2. Builds the `.vsix` via `pnpm run vsix`
+3. Creates a GitHub Release with the `.vsix` attached (release notes auto-generated from commits since the previous tag)
+
+Marketplace publishing is currently done manually with `vsce publish`.
 
 ## License
 
@@ -240,6 +314,22 @@ VS Code 公式の Quick Pick（`Ctrl+R`）では、Remote 経由のエントリ�
 
 経路ごとにツリーが分かれているので、**もう使わなくなった経路のエントリだけをまとめて見つけて整理する**用途にも便利です（撤去した tunnel host、停止中の SSH ホスト、消した dev container 由来の `\\wsl.localhost\<distro>\...` 履歴 等）。各行のゴミ箱アイコンから公式 Recently Opened に対してそのまま削除を反映できます。
 
+## 組み込みの Remote Explorer との違い
+
+VS Code には組み込みの **Remote Explorer** ビューがあり、こちらは「接続先（Targets）」の管理が主目的です。Recent by Remote はその逆方向 — 「実際に開いたもの」を経路別に並べるビューを補完します。
+
+| | Remote Explorer (組み込み) | Recent by Remote |
+|---|---|---|
+| **主目的** | 接続管理 (Targets) | Recently Opened の整理・掃除 |
+| **データソース** | プロバイダごと（実装依存） | `_workbench.getRecentlyOpened` 一本 |
+| **UI 形態** | プロバイダ別の個別ビューをドロップダウンで切替 | SSH / WSL / Tunnel / Local / Dev Container を 1 ツリーで統合 |
+| **Dev Container の親経路** | 平坦なリスト。どの経路で開いた container か判別不可 | `Tunnel (host) > Dev Container` や `WSL (distro) > Dev Container` 配下にネスト |
+| **同一プロジェクトの複数履歴** | 同じ表示の行が並ぶだけで区別不能 | 裏側の authority が違うことを認識し、`devcontainer.json` のパスを surface して区別可能（[Dev Container authority の 2 形式](#dev-container-authority-の-2-形式) 参照） |
+| **個別の最近ファイル** | 表示対象外 | フォルダ／ワークスペースと並べて表示 |
+| **使わなくなった経路の掃除** | 接続先自体を削除する必要があり面倒 | 各エントリにゴミ箱、経路別にまとめて掃除しやすい |
+
+Remote Explorer は「どこに接続するか」を選ぶ場面で便利、Recent by Remote は「最近開いたものを見つけ直す／掃除する」場面で便利、という関係です。
+
 ## 対応プラットフォーム
 
 Windows / macOS / Linux すべてで動作します。経路分類のうち **WSL** グループは Windows でのみ出現します（WSL 自体が Windows の機能のため）。macOS / Linux 上の Dev Container は `hostPath` が POSIX 形式（`/Users/...` や `/home/...`）で書き込まれるため、`Local > Dev Container` 配下に分類されます。
@@ -260,22 +350,45 @@ Windows / macOS / Linux すべてで動作します。経路分類のうち **WS
 
 ## 主な機能
 
-- **経路別グループ化**: Tunnel / WSL / SSH / Local / Other に自動分類。各見出しに経路を表すアイコン（`radio-tower` / `terminal-linux` / `key` / `device-desktop` / `question`）が付く
-- **ホスト名併記**: `Tunnel (myhost)`、`WSL (Ubuntu)`、`SSH (myserver)` のようにホスト単位でさらに分割
-- **Dev Container は親経路の配下にネスト**: Dev Container を単独の経路グループとして並べず、ファイルが置かれているホスト経路（例: `Tunnel (myhost)`、`WSL (Ubuntu)`、`Local`）の配下に **`Dev Container`** サブグループ（`package` アイコン、件数 description 付き＝例 `3 items`）としてぶら下げる。dev container がどの経路上で動作しているかが視覚的に明確になる
-- **直エントリ → Dev Container サブグループの並び順**: 各経路グループの中身は「経路に直接置かれたフォルダ／ワークスペース／(connect, no folder)」が先頭に並び、`Dev Container` サブグループは末尾に配置される。直開きとコンテナ内開きが視覚的に分離されるため、同名フォルダ（例: WSL 直下の `myProject1 /home/user/myProject1` と Dev Container 内の `myProject1 \\wsl.localhost\<distro>\home\user\myProject1`）も見分けがつきやすい
-- **Dev Container のホストパス単位サブグループ**: 同じ devcontainer 定義を複数の異なるサブフォルダで開いている場合でも、authority に埋め込まれたホスト側プロジェクトフォルダ (`hostPath`) ごとに 1 ノードへまとめる（`package` アイコンで Dev Container サブグループと視覚的に揃える）。コンテナ内パスが `/workspace` で衝突するケースもホスト側プロジェクト名で区別できる
-- **テーマ追従カラーバッジのツールチップ**: ホバー時、エントリ種別 / kind / 親経路（Dev Container の場合）を VS Code のテーマカラー (`--vscode-charts-*` / `--vscode-badge-*`) に追従するバッジとして表示。Dark / Light どちらでも視認可能で、`uri` / `host` / `path` のフル情報も併記する
-- **接続のみエントリ**: Tunnel / WSL / SSH の各経路に `(connect, no folder)` という疑似エントリを自動追加。フォルダを開かずにそのリモートへ接続するだけのアクションをワンクリックで実行できる。dev container 経由のエントリしか残っていない経路（例: `WSL (distro-X)` 上に dev container 履歴だけ残っているケース）でも、authority から親経路を逆算して `(connect, no folder)` を表示するため、その distro へプレーンな状態で接続し直す導線が常に確保される
-- **フォルダ・ワークスペース・ファイルを横断表示**: 「最近開いたフォルダ／ワークスペース」だけでなく「最近開いたファイル」も同じビューに並ぶ（アイコンで識別）
-- **プロジェクトルート相対のファイル表示**: コンテナ内 `fullPath` が `hostPath` 配下にあるファイルは description を相対パスに短縮表示（マウントパスがホストとずれている一般構成では in-container の絶対パスを表示）
-- **グループモード切り替え**: タイトルバーのアイコンで「経路だけでグループ化（混在表示）」と「タイプ→経路の二段グループ化（Workspaces & Folders / Files で分離）」を切り替えられる。選択状態はグローバルに保存される
-- **個別削除**: 各エントリ横のゴミ箱アイコンから公式 Recently Opened から削除
-- **ワンクリックで開く（VS Code 標準 Open Recent と同等のウィンドウルーティング）**: エントリをクリックすると、該当 authority のウィンドウが既に開いていればそのウィンドウへフォーカスしてファイル／フォルダを開く。開いていなければ新規ウィンドウを起動して authority を解決した上で開く
-- **別ウィンドウで開く**: 行ホバー時の `$(empty-window)` ボタン、右クリックメニューの「Open in New Window」、または Quick Pick のアイテムボタンから別ウィンドウで開ける
-- **Quick Pick 版コマンド**: コマンドパレットから `Recent by Remote: Open...` を実行すると、全エントリを経路プレフィックス付きで検索・選択できる
+### 経路別グループ化
 
-### ツリー構造のイメージ
+- Tunnel / WSL / SSH / Local / Other に自動分類。各見出しに経路アイコン（`radio-tower` / `terminal-linux` / `key` / `device-desktop` / `question`）。
+- ホスト単位でさらに分割: `Tunnel (myhost)`、`WSL (Ubuntu)`、`SSH (myserver)`。
+- 全プロバイダを **1 ツリーに統合**（ドロップダウン切替なし）。
+
+### Dev Container の扱い
+
+- **親経路の配下にネスト** — Dev Container は単独経路として並べず、ホスト経路の配下に `Dev Container` サブグループ（`package` アイコン、`3 items` のような件数 description）として配置。直開きとコンテナ内開きが視覚的に分離される。
+- **`hostPath` 単位でサブグループ化** — 同じ devcontainer をルート／サブフォルダで開いた履歴も 1 ノードに集約。コンテナ内パスが `/workspace` で衝突しても、ホスト側プロジェクト名で区別可能。
+- **各エントリの `devcontainer.json` パスを表示** — [Dev Container authority の 2 形式](#dev-container-authority-の-2-形式) 参照。同じ hostPath を指す履歴が複数並んでも、どちらがどの設定で開かれたか判別できる。
+
+### 開く・削除
+
+- **ワンクリックでネイティブルーティング** — 該当 authority のウィンドウが既に開いていればフォーカス、無ければ新規ウィンドウで authority を解決。標準 Open Recent と同じ挙動。
+- **別ウィンドウで開く** — 行ホバー時の `$(empty-window)` ボタン、右クリック「Open in New Window」、Quick Pick のアイテムボタン。
+- **個別削除** — 各行のゴミ箱から公式 Recently Opened に直接反映。
+- **接続のみエントリ** — Tunnel / WSL / SSH 各経路に `(connect, no folder)` を自動追加。dev container 履歴しか残っていない経路でも、authority から親経路を逆算して表示するため、その distro へプレーン接続する導線が常に確保される。
+
+### 1 ビューに全タイプを表示
+
+- フォルダ・ワークスペース・**ファイル**もまとめて表示（アイコンで識別）。
+- **プロジェクトルート相対のファイル表示** — コンテナ内 `fullPath` が `hostPath` 配下なら description を相対パスに短縮。マウントパスがずれる構成では in-container の絶対パスを表示。
+
+### ホバー時のツールチップ
+
+エントリ種別 / 経路 / 親経路（Dev Container の場合）をテーマ追従カラーのバッジで表示。Dev Container では **`devcontainer.json` のパス**（または `(not recorded)`）も併記。Dark / Light どちらでも視認可能で、`uri` / `host` / `path` のフル情報も載せる（テーマカラーは `--vscode-charts-*` / `--vscode-badge-*` に追従）。
+
+### 表示モード
+
+- **グループモード切り替え** — タイトルバーのアイコンで以下を切替（選択はグローバルに保存）:
+  - *経路だけでグループ化* — フォルダ／ワークスペース／ファイルが経路内で混在表示
+  - *二段（タイプ → 経路）* — `Workspaces & Folders` と `Files` を分離して、それぞれ経路別に配置
+
+### Quick Pick
+
+コマンドパレットから `Recent by Remote: Open...` で全エントリを経路プレフィックス付きで検索・選択。各アイテム右端の `$(empty-window)` で別ウィンドウ起動。
+
+## ツリー構造のイメージ
 
 各経路グループの中身は「直エントリ → 末尾に Dev Container サブグループ」の順に並びます。
 
@@ -318,7 +431,7 @@ Extensions ビューで `Recent by Remote` を検索してインストールし�
 
 ### VSIX からインストール
 
-リリースページから `.vsix` ファイルをダウンロードし、VS Code の Extensions ビューで右上メニュー → 「Install from VSIX...」を選択してインストールします。
+[リリースページ](https://github.com/kyanet/vscode-recent-by-remote/releases)から `.vsix` ファイルをダウンロードし、VS Code の Extensions ビューで右上メニュー → 「Install from VSIX...」を選択してインストールします。
 
 ### ソースからビルド
 
@@ -328,23 +441,6 @@ pnpm run vsix
 ```
 
 `pnpm run vsix` は production ビルド（型チェック + lint + esbuild）を実行した上で `recent-by-remote-<version>.vsix` を生成します。生成された `.vsix` ファイルを上記の手順でインストールしてください。
-
-## リリース手順
-
-タグ push を起点に GitHub Actions が `.vsix` をビルドして GitHub Release に添付します。メンテナの操作は以下の 2 行のみです。
-
-```bash
-pnpm version patch    # patch / minor / major のいずれか。package.json と git tag を更新
-git push --follow-tags
-```
-
-`v*` 形式のタグが push されると [.github/workflows/release.yml](.github/workflows/release.yml) が起動し、
-
-1. tag のバージョンと `package.json` の version の整合性を検証
-2. `pnpm run vsix` で `.vsix` を生成
-3. GitHub Release を作成し、`.vsix` を添付（リリースノートは前回タグからのコミットを元に自動生成）
-
-を行います。マーケットプレイス公開は `vsce publish` で手動。
 
 ## 使い方
 
@@ -369,6 +465,7 @@ git push --follow-tags
 | `Recent by Remote: Group by Type (Workspaces / Files)` | タイプ→経路の二段グループ化に切り替え |
 | `Recent by Remote: Group by Remote Only` | 経路だけのグループ化（混在表示）に切り替え |
 | `Recent by Remote: Toggle Group Mode` | 上記 2 モードをトグル（キーバインド向け） |
+| `Recent by Remote: Dump Recently Opened (raw JSON)` | `_workbench.getRecentlyOpened` の生 JSON と Dev Container authority のデコード結果を新規エディタに開く。デバッグ・サポート用 |
 
 > VS Code を日本語ロケールで使っている場合、コマンドパレット上のコマンド title は自動的に日本語表記（例: 「Recent by Remote: 更新」）に切り替わります。
 
@@ -382,7 +479,14 @@ git push --follow-tags
 
 | 設定 | デフォルト | 説明 |
 |---|---|---|
-| `recentByRemote.clickAction` | `openHere` | 行クリック時の動作。`openHere` は VS Code 標準のウィンドウルーティング（標準 Open Recent と同じ挙動）。`openInNewWindow` にすると毎回新規ウィンドウで開く（クリックを逆の挙動にしたい場合用）。右クリックメニューの「Open」はこの設定に関わらず常に標準ルーティング |
+| `recentByRemote.clickAction` | `openHere` | 行クリック時の動作。値は以下を参照。 |
+
+`recentByRemote.clickAction` の値:
+
+- **`openHere`** — VS Code 標準のウィンドウルーティング。authority が一致するウィンドウがあればフォーカス、無ければ新規ウィンドウ起動。標準 Open Recent と同じ挙動。
+- **`openInNewWindow`** — クリック時は常に新規ウィンドウで開く（クリックの既定動作を逆にしたい場合）。
+
+右クリックメニューの「Open」はこの設定に関わらず常に標準ルーティングです。
 
 ## 経路分類のロジック
 
@@ -399,7 +503,7 @@ git push --follow-tags
 
 ### Dev Container の親経路判別
 
-Dev Container エントリ（`dev-container+<hex>` または `attached-container+<hex>` で始まる authority）は、ファイルが置かれているホスト経路に応じて、親グループの直下に `Dev Container` サブグループとして配置されます。本拡張は authority hex 部分（JSON）と末尾の `@<auth>` 接尾辞をデコードして親経路を判別します：
+Dev Container エントリ（`dev-container+<hex>` または `attached-container+<hex>` で始まる authority）は、ファイルが置かれているホスト経路に応じて、親グループの直下に `Dev Container` サブグループとして配置されます。本拡張は authority hex 部分のペイロード（後述の [Dev Container authority の 2 形式](#dev-container-authority-の-2-形式) 参照）と末尾の `@<auth>` 接尾辞をデコードして親経路を判別します：
 
 | ホストパス / 接尾辞 | 親グループ |
 |---|---|
@@ -413,6 +517,27 @@ Dev Container エントリ（`dev-container+<hex>` または `attached-container
 ※1 公式 Dev Containers 拡張は `extensionKind: ["ui"]` 固定のため、WSL session で開いた dev container でも `hostPath` は Windows から見た UNC 形式で書き込まれます（次節参照）。本拡張は UNC 形式から WSL distro 名を抽出し、対応する `WSL (<distro>)` グループ配下にぶら下げます。
 
 さらに、Dev Container サブグループ内のエントリは `hostPath`（ホスト側プロジェクトフォルダ）単位でサブグループ化されます。同じ devcontainer 定義に対してルートで開いた履歴とサブフォルダで開いた履歴が複数残っていても、1 つのノード配下に集約されて一覧できます（`package` アイコン）。サブグループのラベルにはホスト側フォルダの basename を使うので、コンテナ内パスが `/workspace` で衝突する複数の Dev Container もホスト側プロジェクト名で見分けられます。
+
+### Dev Container authority の 2 形式
+
+`dev-container+<hex>` の hex 部分は、現行版 Dev Containers 拡張内で **2 通りのペイロード形式**として生成されます:
+
+| 形式 | hex をデコードした中身 | 生成条件 |
+|---|---|---|
+| **JSON ペイロード** | `{ "hostPath": ..., "configFile": ..., "localDocker": ..., "settings": ... }` | 拡張が `configFile`（または `settings`）を伴って authority を組み立てたとき。`devcontainer.json` を伴う「Reopen in Container」の典型ケース |
+| **生のホストパス** | ホストパスがそのまま文字列で入る（例: `/home/user/project`） | 同じ authority ビルダーが `configFile` も `settings` も渡されずに呼ばれたとき。ラベルは `[Dev Container]` のみで devcontainer 名が空になる |
+
+これらは同じプロジェクトで**併存し得ます** — `hostPath` が同じだが authority が異なる **見た目そっくりの履歴が 2 件並ぶ** 状態になります。組み込みの Remote Explorer はこの 2 件をどちらも全く同じ行として描画します。
+
+Recent by Remote は両者を区別します:
+
+- **JSON 形式** のエントリは、`devcontainer.json` のパス（可能ならプロジェクトフォルダからの相対）を description に表示し、ツールチップにも `dev container config: /path/to/devcontainer.json` を載せる。
+- **生パス形式** のエントリは description とツールチップに `(no config recorded)` と表示。
+- 同じ `hostPath` サブグループ内では、config ペイロード付きのエントリを上位にソートするので、情報量の多い行に当たりやすい。
+
+迷ったら `devcontainer.json` のパスが付いている方を選ぶのが無難です。生パス形式は config 情報を捕捉しなかった古い履歴の残骸である可能性があります。
+
+詳細な調査が必要な場合は、コマンドパレットから **`Recent by Remote: Dump Recently Opened (raw JSON)`** を実行してください。`_workbench.getRecentlyOpened` の生 JSON と、デコード済みの authority ペイロードを新規エディタに開きます。
 
 ### Dev Containers 拡張は常に Windows VS Code 側で動く（UI extension）
 
@@ -444,9 +569,26 @@ Dev Container エントリ（`dev-container+<hex>` または `attached-container
 - 本拡張は以下の VS Code 内部コマンド（underscore prefix）を 2 つ使用しています。いずれも公開 API では同等の機能が提供されておらず、Microsoft の Remote 系 first-party 拡張も同じコマンドに依存しているため、実用上の安定性は十分にあります。ただし将来のバージョンで変更・削除される可能性はあります
   - `_workbench.getRecentlyOpened` — Recently Opened 一覧を取得。公開 API 化要望は [microsoft/vscode#124577](https://github.com/microsoft/vscode/issues/124577) で 2021-05 から OPEN のまま。メンテナ間で「昇格してもよい」と合意済みだが未実装
   - `_files.windowOpen` — 標準 Open Recent と同じウィンドウルーティング（authority が一致するウィンドウへフォーカスしてファイル／フォルダを開く）を行うコマンド。公開 API 化要望は [microsoft/vscode#123615](https://github.com/microsoft/vscode/issues/123615) で OPEN のまま。`vscode.openFolder`（フォルダ専用）と `vscode.open`（現在ウィンドウのみ）では cross-authority のファイルを正しく開けないため、メンテナ bpasero が [#122071 のコメント](https://github.com/microsoft/vscode/issues/122071#issuecomment-826279707) で本コマンドを公式の回避策として推奨しています。本拡張は内部コマンドが利用できない環境（Web 版 vscode.dev など）では `vscode.open` / `vscode.openFolder` にフォールバックします
-- Dev Container の authority エンコード形式は Dev Containers 拡張のバージョンによって異なる場合があります。既知の 2 形式（JSON / 生パス）に対応していますが、未知の形式で `hostPath` も `@<auth>` 接尾辞も読み取れない場合、親経路を判定できず `Local > Dev Container` 配下に分類されます
+- Dev Container authority のペイロードは 2 形式（JSON / 生パス）があり、両方とも対応しています（詳細は [Dev Container authority の 2 形式](#dev-container-authority-の-2-形式) 参照）。将来未知の形式が登場し、`hostPath` も `@<auth>` 接尾辞も読み取れない場合は、親経路を判定できず `Local > Dev Container` 配下に分類されます
 - フォルダエントリのアイコンには `folder-opened` codicon を採用しています。`folder` / `file` という id は VS Code 内部で sentinel として特別扱いされており、`resourceUri` がリモートで未解決の場合に何も描画されない既知の挙動（[microsoft/vscode#146479](https://github.com/microsoft/vscode/issues/146479)）があるため、それを避ける目的での選択です。トレードオフとして、ファイルアイコンテーマによるフォルダ名別の特殊アイコン（`.git` / `node_modules` 等）は適用されません
 - 行ホバー時に出る `$(empty-window)` のインラインボタンは hover 時のみ表示されます。VS Code の TreeView API には拡張機能側からインラインボタンを常時表示にする手段がありません（[microsoft/vscode#78829](https://github.com/microsoft/vscode/issues/78829)）。代替手段として、ツリーフォーカス状態の `Ctrl+Enter` / `Cmd+Enter`、右クリックメニューの「Open in New Window」、または設定 `recentByRemote.clickAction` を `openInNewWindow` に変更することでクリックの既定動作を反転できます
+
+## リリース手順 (メンテナ向け)
+
+タグ push を起点に GitHub Actions が `.vsix` をビルドして GitHub Release に添付します。メンテナの操作は以下の 2 行のみです。
+
+```bash
+pnpm version patch    # patch / minor / major のいずれか。package.json と git tag を更新
+git push --follow-tags
+```
+
+`v*` 形式のタグが push されると [.github/workflows/release.yml](.github/workflows/release.yml) が起動し、
+
+1. tag のバージョンと `package.json` の version の整合性を検証
+2. `pnpm run vsix` で `.vsix` を生成
+3. GitHub Release を作成し、`.vsix` を添付（リリースノートは前回タグからのコミットを元に自動生成）
+
+を行います。マーケットプレイス公開は `vsce publish` で手動。
 
 ## ライセンス
 

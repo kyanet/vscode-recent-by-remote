@@ -277,12 +277,23 @@ This extension only assists with displaying and deleting Recents, so it does not
 
 ## Release flow (for maintainers)
 
-A tag push triggers a GitHub Actions workflow that builds the `.vsix` and attaches it to a GitHub Release. Maintainer steps:
+There are two distribution channels and they're independent:
+
+1. **GitHub Release** — triggered automatically by a `v*` tag push.
+2. **VS Code Marketplace** — published manually with `vsce`.
+
+### 1. GitHub Release (automatic on tag push)
 
 ```bash
-pnpm version patch    # patch / minor / major. Updates package.json and creates a git tag
+# Bump version, update CHANGELOG.md, commit, and create an annotated git tag in one go.
+pnpm version patch    # or minor / major
 git push --follow-tags
 ```
+
+Notes:
+
+- `pnpm version` (like `npm version`) creates an **annotated** tag, which `git push --follow-tags` is happy to push. A manually-created `git tag v1.2.3` is *lightweight* by default and won't be pushed by `--follow-tags` — use `git tag -a v1.2.3 -m v1.2.3` or push it explicitly with `git push origin v1.2.3`.
+- Update `CHANGELOG.md` *before* running `pnpm version` so the version bump commit is the only thing the tag points at.
 
 When a `v*` tag is pushed, [.github/workflows/release.yml](.github/workflows/release.yml) runs:
 
@@ -290,7 +301,26 @@ When a `v*` tag is pushed, [.github/workflows/release.yml](.github/workflows/rel
 2. Builds the `.vsix` via `pnpm run vsix`
 3. Creates a GitHub Release with the `.vsix` attached (release notes auto-generated from commits since the previous tag)
 
-Marketplace publishing is currently done manually with `vsce publish`.
+### 2. Marketplace publish (manual)
+
+```bash
+# First time only: log in with a Personal Access Token from
+# https://dev.azure.com/<your-org>/_usersSettings/tokens
+# (Scope: Marketplace > Manage)
+pnpm exec vsce login kyanet
+
+# Publish — picks up version from package.json, rebuilds the vsix via vscode:prepublish
+pnpm exec vsce publish
+
+# Or upload an already-built .vsix (e.g. the one attached to the GitHub Release)
+pnpm exec vsce publish --packagePath recent-by-remote-<version>.vsix
+```
+
+Notes:
+
+- The local Linux/WSL/dev-container environment usually has no `libsecret` / keyring daemon, so `vsce` falls back to storing the PAT in plaintext at `~/.vsce` (a JSON file, not the `~/.vsce-pat` file used by older v1 vsce). Restrict permissions: `chmod 600 ~/.vsce`.
+- `vsce login <publisher>` is only needed on the first publish or when rotating the PAT. Subsequent `vsce publish` runs reuse the stored credentials silently.
+- Azure DevOps PATs expire — if `publish` starts failing with 401, generate a new PAT and re-run `vsce login kyanet` (choose "overwrite" when prompted).
 
 ## License
 
@@ -575,12 +605,23 @@ Recent by Remote は両者を区別します:
 
 ## リリース手順 (メンテナ向け)
 
-タグ push を起点に GitHub Actions が `.vsix` をビルドして GitHub Release に添付します。メンテナの操作は以下の 2 行のみです。
+配布チャネルは 2 つあり、それぞれ独立しています:
+
+1. **GitHub Release** — `v*` タグ push を起点に自動。
+2. **VS Code Marketplace** — `vsce` で手動公開。
+
+### 1. GitHub Release (タグ push で自動)
 
 ```bash
-pnpm version patch    # patch / minor / major のいずれか。package.json と git tag を更新
+# version bump + CHANGELOG 更新 + コミット + annotated tag 作成
+pnpm version patch    # patch / minor / major
 git push --follow-tags
 ```
+
+注意点:
+
+- `pnpm version` (`npm version` と同じ) は **annotated tag** を作るので `git push --follow-tags` で push されます。手動で `git tag v1.2.3` した場合は **lightweight tag** になり `--follow-tags` では push されません。`git tag -a v1.2.3 -m v1.2.3` を使うか、`git push origin v1.2.3` で明示 push してください。
+- `CHANGELOG.md` は `pnpm version` の **前に** 更新しておくと、version bump コミットがタグの差分として綺麗にまとまります。
 
 `v*` 形式のタグが push されると [.github/workflows/release.yml](.github/workflows/release.yml) が起動し、
 
@@ -588,7 +629,28 @@ git push --follow-tags
 2. `pnpm run vsix` で `.vsix` を生成
 3. GitHub Release を作成し、`.vsix` を添付（リリースノートは前回タグからのコミットを元に自動生成）
 
-を行います。マーケットプレイス公開は `vsce publish` で手動。
+を行います。
+
+### 2. Marketplace 公開 (手動)
+
+```bash
+# 初回のみ: Azure DevOps の Personal Access Token でログイン
+# https://dev.azure.com/<your-org>/_usersSettings/tokens から発行
+# (スコープ: Marketplace > Manage)
+pnpm exec vsce login kyanet
+
+# 公開 — package.json の version を読み、vscode:prepublish で vsix を再ビルドして送る
+pnpm exec vsce publish
+
+# またはビルド済み .vsix (例: GitHub Release に添付したもの) をアップロード
+pnpm exec vsce publish --packagePath recent-by-remote-<version>.vsix
+```
+
+注意点:
+
+- Linux / WSL / dev container 環境では `libsecret` / keyring デーモンが動いていないことが多く、`vsce` は PAT を平文の `~/.vsce` (JSON ファイル。旧 v1 vsce が使っていた `~/.vsce-pat` とは別) にフォールバック保存します。`chmod 600 ~/.vsce` で権限を絞っておくのが無難です。
+- `vsce login <publisher>` は初回 publish 時と PAT を rotate するときのみ必要。以降は `vsce publish` だけで自動的に保存済み PAT を使います。
+- Azure DevOps の PAT には有効期限があり、切れると `publish` が 401 で失敗します。新しい PAT を発行して `vsce login kyanet` を再実行 (プロンプトで "overwrite" を選択)。
 
 ## ライセンス
 

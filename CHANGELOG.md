@@ -2,6 +2,16 @@
 
 All notable changes to **Recent by Remote** are documented in this file.
 
+## 1.0.1 — 2026-09-27
+
+Documentation only — no code changes.
+
+### Changed
+
+- README: corrected the Remote Explorer comparison. Remote Explorer's per-host folders come from separate histories kept by Remote - SSH / Remote - Tunnels (not the Recently Opened list), and they can be removed one at a time via **Remove from Recent List**.
+- README: added a known limitation — removing an entry here does not remove the same folder from Remote Explorer's per-provider histories.
+- README: documented the Marketplace publish steps in the maintainer release flow.
+
 ## 1.0.0 — 2026-05-24
 
 First stable release.

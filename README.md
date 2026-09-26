@@ -23,12 +23,12 @@ VS Code ships a **Remote Explorer** view that lists *targets* you can connect to
 | | Remote Explorer (built-in) | Recent by Remote |
 |---|---|---|
 | **Primary purpose** | Connection management (Targets) | Recently Opened triage & cleanup |
-| **Data source** | Per-provider (varies) | `_workbench.getRecentlyOpened` (single source of truth) |
+| **Data source** | Separate folder history kept by each provider extension (Remote - SSH, Remote - Tunnels) — not the Recently Opened list | `_workbench.getRecentlyOpened` (single source of truth) |
 | **UI shape** | Separate view per provider, switched via a dropdown | One unified tree for SSH / WSL / Tunnel / Local / Dev Container |
 | **Dev Container parent route** | Flat list of containers — no indication of which route they were reached through | Nested under `Tunnel (host) > Dev Container`, `WSL (distro) > Dev Container`, etc. |
 | **Multiple history entries for the same project** | Same-looking rows side by side, no way to tell them apart from the UI | Recognises that the underlying authorities differ and surfaces the `devcontainer.json` path so each row is distinguishable (see [Dev Container authority forms](#dev-container-authority-forms)) |
 | **Recent files (individual files)** | Not shown | Listed alongside folders/workspaces |
-| **Cleanup of stale routes** | Hard — requires removing the connection target itself | Easy — trash icon per entry, scoped per route |
+| **Cleanup of stale routes** | One folder at a time via right-click **Remove from Recent List**, host by host, and only for that provider's own history | Easy — trash icon per entry, scoped per route |
 
 Remote Explorer is great when you know which host you want to attach to. Recent by Remote is great when you want to revisit (or clean up) something you actually opened recently.
 
@@ -272,6 +272,7 @@ This extension only assists with displaying and deleting Recents, so it does not
   - `_workbench.getRecentlyOpened` — Retrieves the Recently Opened list. The public-API request [microsoft/vscode#124577](https://github.com/microsoft/vscode/issues/124577) has been open since 2021-05. Maintainers agree it could be promoted, but no action has been taken
   - `_files.windowOpen` — Provides the same window routing as the official Open Recent (focus the matching-authority window and open the file/folder, or spawn a new window). The public-API request [microsoft/vscode#123615](https://github.com/microsoft/vscode/issues/123615) is also open. `vscode.openFolder` (folders only) and `vscode.open` (current window only) cannot correctly open cross-authority files; maintainer bpasero recommends this command as the official workaround in [a comment on #122071](https://github.com/microsoft/vscode/issues/122071#issuecomment-826279707). When internal commands are unavailable (e.g. on the vscode.dev web client), the extension falls back to `vscode.open` / `vscode.openFolder`
 - Dev Container authorities come in two payload forms (JSON / raw host path) — both are supported, see [Dev Container authority forms](#dev-container-authority-forms). If neither the `hostPath` nor the `@<auth>` suffix can be parsed (e.g. a future encoding the extension hasn't seen), the parent route cannot be determined and the entry falls under `Local > Dev Container`
+- Removing an entry only affects the official Recently Opened list. The folders shown under each host in the built-in Remote Explorer come from separate per-extension histories kept by Remote - SSH and Remote - Tunnels, so they stay there after removal here. To clear those, use **Remove from Recent List** from the right-click menu in Remote Explorer
 - Folder entries use the `folder-opened` codicon. The ids `folder` / `file` are special-cased internally by VS Code as sentinels — when `resourceUri` is unresolved on a remote, nothing is drawn ([microsoft/vscode#146479](https://github.com/microsoft/vscode/issues/146479)). Using `folder-opened` avoids that. The trade-off is that file-icon-theme folder-name specializations (`.git` / `node_modules` etc.) don't apply
 - The `$(empty-window)` inline button only appears on hover. VS Code's TreeView API has no way to make inline buttons permanently visible from the extension side ([microsoft/vscode#78829](https://github.com/microsoft/vscode/issues/78829)). Workarounds: use `Ctrl+Enter` / `Cmd+Enter` with the tree focused, the right-click "Open in New Window" menu item, or set `recentByRemote.clickAction` to `openInNewWindow` to invert the default click behavior
 
@@ -351,12 +352,12 @@ VS Code には組み込みの **Remote Explorer** ビューがあり、こちら
 | | Remote Explorer (組み込み) | Recent by Remote |
 |---|---|---|
 | **主目的** | 接続管理 (Targets) | Recently Opened の整理・掃除 |
-| **データソース** | プロバイダごと（実装依存） | `_workbench.getRecentlyOpened` 一本 |
+| **データソース** | 各プロバイダ拡張（Remote - SSH / Remote - Tunnels）が個別に持つフォルダ履歴。Recently Opened とは別物 | `_workbench.getRecentlyOpened` 一本 |
 | **UI 形態** | プロバイダ別の個別ビューをドロップダウンで切替 | SSH / WSL / Tunnel / Local / Dev Container を 1 ツリーで統合 |
 | **Dev Container の親経路** | 平坦なリスト。どの経路で開いた container か判別不可 | `Tunnel (host) > Dev Container` や `WSL (distro) > Dev Container` 配下にネスト |
 | **同一プロジェクトの複数履歴** | 同じ表示の行が並ぶだけで区別不能 | 裏側の authority が違うことを認識し、`devcontainer.json` のパスを surface して区別可能（[Dev Container authority の 2 形式](#dev-container-authority-の-2-形式) 参照） |
 | **個別の最近ファイル** | 表示対象外 | フォルダ／ワークスペースと並べて表示 |
-| **使わなくなった経路の掃除** | 接続先自体を削除する必要があり面倒 | 各エントリにゴミ箱、経路別にまとめて掃除しやすい |
+| **使わなくなった経路の掃除** | 右クリック「Remove from Recent List」でホストごとに 1 件ずつ。消えるのもそのプロバイダの履歴だけ | 各エントリにゴミ箱、経路別にまとめて掃除しやすい |
 
 Remote Explorer は「どこに接続するか」を選ぶ場面で便利、Recent by Remote は「最近開いたものを見つけ直す／掃除する」場面で便利、という関係です。
 
@@ -600,6 +601,7 @@ Recent by Remote は両者を区別します:
   - `_workbench.getRecentlyOpened` — Recently Opened 一覧を取得。公開 API 化要望は [microsoft/vscode#124577](https://github.com/microsoft/vscode/issues/124577) で 2021-05 から OPEN のまま。メンテナ間で「昇格してもよい」と合意済みだが未実装
   - `_files.windowOpen` — 標準 Open Recent と同じウィンドウルーティング（authority が一致するウィンドウへフォーカスしてファイル／フォルダを開く）を行うコマンド。公開 API 化要望は [microsoft/vscode#123615](https://github.com/microsoft/vscode/issues/123615) で OPEN のまま。`vscode.openFolder`（フォルダ専用）と `vscode.open`（現在ウィンドウのみ）では cross-authority のファイルを正しく開けないため、メンテナ bpasero が [#122071 のコメント](https://github.com/microsoft/vscode/issues/122071#issuecomment-826279707) で本コマンドを公式の回避策として推奨しています。本拡張は内部コマンドが利用できない環境（Web 版 vscode.dev など）では `vscode.open` / `vscode.openFolder` にフォールバックします
 - Dev Container authority のペイロードは 2 形式（JSON / 生パス）があり、両方とも対応しています（詳細は [Dev Container authority の 2 形式](#dev-container-authority-の-2-形式) 参照）。将来未知の形式が登場し、`hostPath` も `@<auth>` 接尾辞も読み取れない場合は、親経路を判定できず `Local > Dev Container` 配下に分類されます
+- 削除操作が反映されるのは公式の Recently Opened だけです。組み込みの Remote Explorer で各ホストの下に表示されるフォルダは、Remote - SSH / Remote - Tunnels 拡張がそれぞれ別に持つ履歴から来ているため、本拡張で削除しても残ります。そちらを消すには Remote Explorer 上で右クリック →「Remove from Recent List」を使ってください
 - フォルダエントリのアイコンには `folder-opened` codicon を採用しています。`folder` / `file` という id は VS Code 内部で sentinel として特別扱いされており、`resourceUri` がリモートで未解決の場合に何も描画されない既知の挙動（[microsoft/vscode#146479](https://github.com/microsoft/vscode/issues/146479)）があるため、それを避ける目的での選択です。トレードオフとして、ファイルアイコンテーマによるフォルダ名別の特殊アイコン（`.git` / `node_modules` 等）は適用されません
 - 行ホバー時に出る `$(empty-window)` のインラインボタンは hover 時のみ表示されます。VS Code の TreeView API には拡張機能側からインラインボタンを常時表示にする手段がありません（[microsoft/vscode#78829](https://github.com/microsoft/vscode/issues/78829)）。代替手段として、ツリーフォーカス状態の `Ctrl+Enter` / `Cmd+Enter`、右クリックメニューの「Open in New Window」、または設定 `recentByRemote.clickAction` を `openInNewWindow` に変更することでクリックの既定動作を反転できます
 
